@@ -3,7 +3,10 @@
 uniref100.fasta.gz
 ncbi_taxa_2022-10-20/*
 Kaiko_denovo/model/*
-diamond-2.0.15/*
+diamond-2.0.15/*.exe
+diamond-2.0.15/*.dmnd
+diamond-2.0.15/*.sh
+diamond-2.0.15/*.24
 
 # pipeline outputs and inputs
 pipeline_input/*.MGF
