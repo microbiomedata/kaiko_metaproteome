@@ -6,7 +6,9 @@ Kaiko_denovo/model/*
 diamond-2.0.15/*.exe
 diamond-2.0.15/*.dmnd
 diamond-2.0.15/*.sh
-diamond-2.0.15/*.24
+diamond-2.0.15/
+Kaiko_volume/*
+
 
 # pipeline outputs and inputs
 pipeline_input/*.MGF

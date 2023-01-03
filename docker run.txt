@@ -1,0 +1,4 @@
+
+docker run --name Kaiko_container -v C:/Users/poss982/Documents/GitHub/Kaiko_pipeline/Kaiko_volume/:/Kaiko_pipeline/Kaiko_volume -t -d kaiko_pipeline
+
+docker build -t kaiko_pipeline . 

@@ -40,8 +40,8 @@ if config['denovo'].getboolean('beam_search'):
 print("DeNovo: Running the following command:\n")
 print(" ".join(kaiko_1_args) + "\n")
 
-subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
-
+# subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
+subprocess.call(kaiko_1_args, cwd = "Kaiko_denovo")
 
 
 
@@ -53,10 +53,10 @@ combine_denovo_output(config['denovo']['decode_dir'])
 
 
 ## Step 3. Passing to diamond
-diamond_args = ["diamond", "blastp", "-d",
-                "uniref100", "--min-score", "1",
-                "-q", "../pipeline_intermediary/combined_denovo.fasta", "-o",
-                "../pipeline_intermediary/diamond_search_output.dmd", "-f", "6", "qseqid", 
+diamond_args = ["./diamond", "blastp", "-d",
+                "../uniref100", "--min-score", "1",
+                "-q", "../../Kaiko_intermediate/combined_denovo.fasta", "-o",
+                "diamond_search_output.dmd", "-f", "6", "qseqid", 
                 "stitle", "pident", "evalue", "mismatch"]
 
 
@@ -64,15 +64,15 @@ print("DeNovo: Running the following command:\n")
 print(" ".join(diamond_args) + "\n")
 
 # subprocess.run(diamond_args, cwd = "diamond-2.0.15")
-os.chdir("diamond-2.0.15")
+os.chdir("Kaiko_volume/Kaiko_stationary_files/diamond-linux")
 os.system(" ".join(diamond_args))
-os.chdir("../")
+os.chdir("../../")
 
 
 
 
 # Step 4. Tallying the diamond results
-run_diamond_tally("pipeline_intermediary/diamond_search_output.dmd", 
+run_diamond_tally("Kaiko_volume/Kaiko_intermediate/diamond_search_output.dmd", 
                   int(config['diamond tally']['ntops']), 
                   config['diamond tally']['ncbi_taxa_folder'] , 
                   config['diamond tally']['mode'] , 
