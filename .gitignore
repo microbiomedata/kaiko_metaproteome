@@ -7,9 +7,20 @@ diamond-2.0.15/*.exe
 diamond-2.0.15/*.dmnd
 diamond-2.0.15/*.sh
 diamond-2.0.15/
-Kaiko_volume/*
+Kaiko_volume/Kaiko_input_files/*.mgf
+Kaiko_volume/Kaiko_intermediate/*.fasta
+Kaiko_volume/Kaiko_intermediate/*.dmd
+Kaiko_volume/Kaiko_intermediate/*.csv
+Kaiko_volume/Kaiko_intermediate/denovo_output/*
+Kaiko_volume/Kaiko_output/*
+Kaiko_volume/Kaiko_stationary_files/*
 /Kaiko_denovo_py27
+/Kaiko_old
 
+!Kaiko_volume/Kaiko_intermediate/denovo_output/README.txt
+!Kaiko_volume/Kaiko_stationary_files/README.txt
+!Kaiko_volume/Kaiko_intermediate/README.txt
+!Kaiko_volume/Kaiko_output/README.txt
 
 # pipeline outputs and inputs
 pipeline_input/*.MGF

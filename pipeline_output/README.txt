@@ -1,1 +1,0 @@
-Output FASTA file will be placed here.

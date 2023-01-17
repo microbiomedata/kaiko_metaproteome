@@ -1,1 +1,0 @@
-Place diamond (sequence alignment) here
