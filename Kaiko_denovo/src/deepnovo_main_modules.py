@@ -37,14 +37,14 @@ import random
 import sys
 import time
 import re
-import resource
+#import resource
 import glob
 
 import numpy as np
 #~ cimport numpy as np
 #~ ctypedef np.float32_t C_float32
 #~ ctypedef np.int32_t C_int32
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 import deepnovo_config
@@ -54,7 +54,7 @@ from deepnovo_debug import process_spectrum, get_candidate_intensity
 
 import socket
 
-import cPickle
+import pickle
 
 # import deepnovo_debug
 # from deepnovo_cython_modules import process_spectrum, get_candidate_intensity
@@ -87,7 +87,7 @@ def inspect_files_locations(data_format, input_files):
 
   print("inspect_files_locations()")
   spectra_file_locations = []
-  file_index = [[] for _ in xrange(2)]
+  file_index = [[] for _ in range(2)]
   for input_file in input_files:
     spectra_file_locations += inspect_file_location(data_format, input_file)
     file_index[0].append(input_file)
@@ -333,7 +333,7 @@ def read_spectra(file_handle, data_format, spectra_locations):
 
         candidate_intensity_list_forward = []
         prefix_mass = 0.0
-        for index in xrange(decoder_size):
+        for index in range(decoder_size):
 
           prefix_mass += deepnovo_config.mass_ID[peptide_ids_forward[index]]
           candidate_intensity = get_candidate_intensity(
@@ -358,7 +358,7 @@ def read_spectra(file_handle, data_format, spectra_locations):
 
         candidate_intensity_list_backward = []
         suffix_mass = 0.0
-        for index in xrange(decoder_size):
+        for index in range(decoder_size):
 
           suffix_mass += deepnovo_config.mass_ID[peptide_ids_backward[index]]
           candidate_intensity = get_candidate_intensity(
@@ -666,7 +666,7 @@ def read_spectra_from_multiple_files(data_format, file_names, spectra_locations)
 
         candidate_intensity_list_forward = []
         prefix_mass = 0.0
-        for index in xrange(decoder_size):
+        for index in range(decoder_size):
 
           prefix_mass += deepnovo_config.mass_ID[peptide_ids_forward[index]]
           candidate_intensity = get_candidate_intensity(
@@ -691,7 +691,7 @@ def read_spectra_from_multiple_files(data_format, file_names, spectra_locations)
 
         candidate_intensity_list_backward = []
         suffix_mass = 0.0
-        for index in xrange(decoder_size):
+        for index in range(decoder_size):
 
           suffix_mass += deepnovo_config.mass_ID[peptide_ids_backward[index]]
           candidate_intensity = get_candidate_intensity(
@@ -932,7 +932,7 @@ def read_spectra_from_multiple_pickles(all_spectra_in_memory, all_sequence_in_me
 
         candidate_intensity_list_forward = []
         prefix_mass = 0.0
-        for index in xrange(decoder_size):
+        for index in range(decoder_size):
 
           prefix_mass += deepnovo_config.mass_ID[peptide_ids_forward[index]]
           candidate_intensity = get_candidate_intensity(
@@ -957,7 +957,7 @@ def read_spectra_from_multiple_pickles(all_spectra_in_memory, all_sequence_in_me
 
         candidate_intensity_list_backward = []
         suffix_mass = 0.0
-        for index in xrange(decoder_size):
+        for index in range(decoder_size):
 
           suffix_mass += deepnovo_config.mass_ID[peptide_ids_backward[index]]
           candidate_intensity = get_candidate_intensity(
@@ -1057,7 +1057,7 @@ def read_random_stack_for_multiple_files(data_format, file_index, spectra_locati
   """TODO(nh2tran): docstring."""
 
   print("read_random_stack_for_multiple_files()")
-  random_idx = random.sample(xrange(file_index[1][-1]), min(stack_size, file_index[1][-1]))
+  random_idx = random.sample(range(file_index[1][-1]), min(stack_size, file_index[1][-1]))
   # random_locations = random.sample(spectra_locations,
   #                                  min(stack_size, len(spectra_locations)))
   random_locations = []
@@ -1073,7 +1073,7 @@ def read_random_stack_for_multiple_pickles(all_spectra, all_sequence, num_spectr
   """TODO(nh2tran): docstring."""
 
   print("read_random_stack_for_multiple_pickles()")
-  random_idx = random.sample(xrange(num_spectra[-1]), min(stack_size, num_spectra[-1]))
+  random_idx = random.sample(range(num_spectra[-1]), min(stack_size, num_spectra[-1]))
 
   random_locations = []
   f_idx = np.array(num_spectra)
@@ -1111,19 +1111,19 @@ def get_batch_01(index_list, data_set, bucket_id):
   batch_decoder_inputs = []
   batch_weights = []
   decoder_size = deepnovo_config._buckets[bucket_id]
-  for length_idx in xrange(decoder_size):
+  for length_idx in range(decoder_size):
 
     # batch_intensity_inputs and batch_decoder_inputs are just re-indexed.
     batch_intensity_inputs.append(
         np.array([candidate_intensity_lists[batch_idx][length_idx]
-                  for batch_idx in xrange(batch_size)], dtype=np.float32))
+                  for batch_idx in range(batch_size)], dtype=np.float32))
     batch_decoder_inputs.append(
         np.array([decoder_inputs[batch_idx][length_idx]
-                  for batch_idx in xrange(batch_size)], dtype=np.int32))
+                  for batch_idx in range(batch_size)], dtype=np.int32))
 
     # Create target_weights to be 0 for targets that are padding.
     batch_weight = np.ones(batch_size, dtype=np.float32)
-    for batch_idx in xrange(batch_size):
+    for batch_idx in range(batch_size):
       # The corresponding target is decoder_input shifted by 1 forward.
       if length_idx < decoder_size - 1:
         target = decoder_inputs[batch_idx][length_idx + 1]
@@ -1174,25 +1174,25 @@ def get_batch_2(index_list, data_set, bucket_id):
   batch_decoder_inputs_backward = []
   batch_weights = []
   decoder_size = deepnovo_config._buckets[bucket_id]
-  for length_idx in xrange(decoder_size):
+  for length_idx in range(decoder_size):
 
     # batch_intensity_inputs and batch_decoder_inputs are re-indexed.
     batch_intensity_inputs_forward.append(
         np.array([candidate_intensity_lists_forward[batch_idx][length_idx]
-                  for batch_idx in xrange(batch_size)], dtype=np.float32))
+                  for batch_idx in range(batch_size)], dtype=np.float32))
     batch_intensity_inputs_backward.append(
         np.array([candidate_intensity_lists_backward[batch_idx][length_idx]
-                  for batch_idx in xrange(batch_size)], dtype=np.float32))
+                  for batch_idx in range(batch_size)], dtype=np.float32))
     batch_decoder_inputs_forward.append(
         np.array([decoder_inputs_forward[batch_idx][length_idx]
-                  for batch_idx in xrange(batch_size)], dtype=np.int32))
+                  for batch_idx in range(batch_size)], dtype=np.int32))
     batch_decoder_inputs_backward.append(
         np.array([decoder_inputs_backward[batch_idx][length_idx]
-                  for batch_idx in xrange(batch_size)], dtype=np.int32))
+                  for batch_idx in range(batch_size)], dtype=np.int32))
 
     # Create target_weights to be 0 for targets that are padding.
     batch_weight = np.ones(batch_size, dtype=np.float32)
-    for batch_idx in xrange(batch_size):
+    for batch_idx in range(batch_size):
       # The corresponding target is decoder_input shifted by 1 forward.
       if length_idx < decoder_size - 1:
         target = decoder_inputs_forward[batch_idx][length_idx + 1]
@@ -1414,9 +1414,9 @@ def test_AA_decode_batch(scans,
 
   #~ batch_size = len(decoder_inputs)
 
-  for index in xrange(len(scans)):
+  for index in range(len(scans)):
   #~ # for testing
-  #~ for index in xrange(15,20):
+  #~ for index in range(15,20):
 
     scan = scans[index]
     decoder_input = decoder_inputs[index]
@@ -1511,7 +1511,7 @@ def test_logit_batch_01(decoder_inputs, output_logits):
   num_exact_match = 0.0
   num_len_match = 0.0
   batch_size = len(decoder_inputs[0])
-  for batch in xrange(batch_size):
+  for batch in range(batch_size):
 
     decoder_input = [x[batch] for x in decoder_inputs]
     output_logit = [x[batch] for x in output_logits]
@@ -1554,7 +1554,7 @@ def test_logit_batch_2(decoder_inputs_forward,
   num_exact_match = 0.0
   num_len_match = 0.0
   batch_size = len(decoder_inputs_forward[0])
-  for batch in xrange(batch_size):
+  for batch in range(batch_size):
 
     decoder_input_forward = [x[batch] for x in decoder_inputs_forward]
     decoder_input_backward = [x[batch] for x in decoder_inputs_backward]
@@ -1595,10 +1595,10 @@ def test_random_accuracy(sess, model, data_set, bucket_id):
   data_set_len = len(data_set[bucket_id])
   num_step = deepnovo_config.random_test_batches
 
-  for _ in xrange(num_step):
+  for _ in range(num_step):
 
     start_time = time.time()
-    random_index_list = random.sample(xrange(data_set_len),
+    random_index_list = random.sample(range(data_set_len),
                                       deepnovo_config.batch_size)
 
     # get_batch_01/2
@@ -1798,8 +1798,8 @@ def knapsack_example():
   print("mass_aa = ", mass_aa)
   knapsack_matrix = np.zeros(shape=(4, 11), dtype=bool)
 
-  for aa_id in xrange(4):
-    for col in xrange(peptide_mass):
+  for aa_id in range(4):
+    for col in range(peptide_mass):
 
       current_mass = col + 1
 
@@ -1843,13 +1843,13 @@ def knapsack_build():
                                     peptide_mass_upperbound),
                              dtype=bool)
 
-  for aa_id in xrange(3, deepnovo_config.vocab_size): # excluding PAD, GO, EOS
+  for aa_id in range(3, deepnovo_config.vocab_size): # excluding PAD, GO, EOS
 
     mass_aa_round = int(round(deepnovo_config.mass_ID[aa_id]
                               * deepnovo_config.KNAPSACK_AA_RESOLUTION))
     print(deepnovo_config.vocab_reverse[aa_id], mass_aa_round)
 
-    for col in xrange(peptide_mass_upperbound):
+    for col in range(peptide_mass_upperbound):
 
       # col 0 ~ mass 1
       # col + 1 = mass
@@ -2034,14 +2034,14 @@ def decode_true_feeding_01(sess, model, direction, data_set):
   #~ block_state0 = np.vstack(block_state0)
 
   # MAIN decoding LOOP in STACKS
-  output_log_probs = [[] for x in xrange(len(data_set[0][2]))]
+  output_log_probs = [[] for x in range(len(data_set[0][2]))]
 
   for stack_index, stack in enumerate(data_set_index_stack_list):
 
     stack_c_state = block_c_state0[stack_index]
     stack_h_state = block_h_state0[stack_index]
 
-    for index in xrange(len(data_set[0][2])):
+    for index in range(len(data_set[0][2])):
 
       block_candidate_intensity = np.array([data_set[x][1][index]
                                             for x in stack])
@@ -2232,9 +2232,9 @@ def test_AA_decode_batch_for_topk(scans,
 
   #~ batch_size = len(decoder_inputs)
 
-  for index in xrange(len(scans)):
+  for index in range(len(scans)):
   #~ # for testing
-  #~ for index in xrange(15,20):
+  #~ for index in range(15,20):
 
     scan = scans[index]
     decoder_input = decoder_inputs[index]
@@ -2316,7 +2316,7 @@ def decode_beam_select_01(output_top_paths, direction):
     LAST_LABEL = deepnovo_config.GO_ID
 
   outputs = []
-  for entry in xrange(len(output_top_paths)):
+  for entry in range(len(output_top_paths)):
 
     top_paths = output_top_paths[entry]
 
@@ -2413,7 +2413,7 @@ def decode_beam_search_01(sess,
   #     peptide_mass        # 3
 
   # our TARGET
-  output_top_paths = [[] for x in xrange(data_set_len)]
+  output_top_paths = [[] for x in range(data_set_len)]
 
   # how many spectra to process at 1 block-run
   decode_block_size = deepnovo_config.batch_size
@@ -2462,7 +2462,7 @@ def decode_beam_search_01(sess,
   #### JOON ###########
 
   # fill in the first entries of active_search
-  for spectrum_id in xrange(init_size):
+  for spectrum_id in range(init_size):
     active_search.append([])
     active_search[-1].append(spectrum_id)
     active_search[-1].append([[[FIRST_LABEL], # current_paths
@@ -2602,7 +2602,7 @@ def decode_beam_search_01(sess,
 
       new_paths = []
 
-      for index in xrange(block_index,
+      for index in range(block_index,
                           block_index + entry_block_size[entry_index]):
 
         for aa_id in block_mass_filter_candidate[index]:
@@ -2630,7 +2630,7 @@ def decode_beam_search_01(sess,
         top_k_indices = np.argpartition(-new_path_scores, deepnovo_config.FLAGS.beam_size)[:deepnovo_config.FLAGS.beam_size] # pylint: disable=line-too-long
         #~ top_k_indices = np.argpartition(-new_path_scores/new_path_lengths,deepnovo_config.FLAGS.beam_size)[:deepnovo_config.FLAGS.beam_size] # pylint: disable=line-too-long
         entry[1] = [new_paths[top_k_indices[x]]
-                    for x in xrange(deepnovo_config.FLAGS.beam_size)]
+                    for x in range(deepnovo_config.FLAGS.beam_size)]
       else:
         entry[1] = new_paths[:]
 
@@ -2649,7 +2649,7 @@ def decode_beam_search_01(sess,
                                - active_search_len,
                                data_set_len)
 
-      for spectrum_id in xrange(spectrum_count, new_spectrum_count):
+      for spectrum_id in range(spectrum_count, new_spectrum_count):
         active_search.append([])
         active_search[-1].append(spectrum_id)
         active_search[-1].append([[[FIRST_LABEL], # current_paths
@@ -2720,7 +2720,7 @@ def decode_beam_search_2(sess, model, data_set, knapsack_matrix):
   argmax_mass_complement_list = []
 
   # by choosing the location of max intensity from (0, peptide_mass_C_location)
-  for spectrum_id in xrange(data_set_len):
+  for spectrum_id in range(data_set_len):
 
     peptide_mass = peptide_mass_list[spectrum_id]
     peptide_mass_C = peptide_mass - mass_EOS
@@ -2746,7 +2746,7 @@ def decode_beam_search_2(sess, model, data_set, knapsack_matrix):
     argmax_mass_complement_list.append(argmax_mass_complement)
 
   # Add the mass and its complement to candidate_mass_list
-  for position in xrange(num_position):
+  for position in range(num_position):
 
     prefix_mass_list = [x[position] for x in argmax_mass_list]
     suffix_mass_list = [x[position] for x in argmax_mass_complement_list]
@@ -2763,7 +2763,7 @@ def decode_beam_search_2(sess, model, data_set, knapsack_matrix):
                                 1000]) # knapsack_precision
 
   # Start decoding for each candidate_mass
-  output_top_paths = [[] for x in xrange(data_set_len)]
+  output_top_paths = [[] for x in range(data_set_len)]
   for candidate_mass in candidate_mass_list:
 
     top_paths_forward = decode_beam_search_01(
@@ -2786,7 +2786,7 @@ def decode_beam_search_2(sess, model, data_set, knapsack_matrix):
         candidate_mass[3], # knapsack_precision
         data_set_backward)
 
-    for spectrum_id in xrange(data_set_len):
+    for spectrum_id in range(data_set_len):
 
       if ((not top_paths_forward[spectrum_id])
           or (not top_paths_backward[spectrum_id])): # any list is empty
@@ -2806,8 +2806,8 @@ def decode_beam_search_2(sess, model, data_set, knapsack_matrix):
   #~ return output_top_paths
 
   # Refinement using peptide_mass_list, especially for middle mass
-  output_top_paths_refined = [[] for x in xrange(data_set_len)]
-  for spectrum_id in xrange(data_set_len):
+  output_top_paths_refined = [[] for x in range(data_set_len)]
+  for spectrum_id in range(data_set_len):
     top_paths = output_top_paths[spectrum_id]
     for path in top_paths:
       seq = path[0]
@@ -3014,7 +3014,7 @@ def decode(input_file=deepnovo_config.decode_test_file):
 
       # decode_true_feeding each bucket separately, like in training/validation
       print("DECODE with TRUE FEEDING")
-      for bucket_id in xrange(len(deepnovo_config._buckets)):
+      for bucket_id in range(len(deepnovo_config._buckets)):
 
         if not data_set[bucket_id]: # empty bucket
           continue
@@ -3248,7 +3248,7 @@ def multi_decode(input_dir=deepnovo_config.input_mgf_dir):
 
         # decode_true_feeding each bucket separately, like in training/validation
         print("DECODE with TRUE FEEDING")
-        for bucket_id in xrange(len(deepnovo_config._buckets)):
+        for bucket_id in range(len(deepnovo_config._buckets)):
 
           if not data_set[bucket_id]: # empty bucket
             continue
@@ -3311,17 +3311,17 @@ def train_cycle(model,
   # to select a bucket, length of [scale[i], scale[i+1]] is proportional to
   # the size if i-th training bucket, as used later.
   train_bucket_sizes = [len(train_set[b])
-                        for b in xrange(len(deepnovo_config._buckets))]
+                        for b in range(len(deepnovo_config._buckets))]
   train_total_size = float(sum(train_bucket_sizes))
   print("train_bucket_sizes ", train_bucket_sizes)
   print("train_total_size ", train_total_size)
   train_buckets_scale = [sum(train_bucket_sizes[:i + 1]) / train_total_size
-                         for i in xrange(len(train_bucket_sizes))]
+                         for i in range(len(train_bucket_sizes))]
   print("train_buckets_scale ", train_buckets_scale)
 
   # to monitor the number of spectra in the current stack
   # that have been used for training
-  train_current_spectra = [0 for b in xrange(len(deepnovo_config._buckets))]
+  train_current_spectra = [0 for b in range(len(deepnovo_config._buckets))]
   # Get a batch and train
   while True:
 
@@ -3332,7 +3332,7 @@ def train_cycle(model,
     # Choose a bucket according to data distribution. We pick a random number
     # in [0, 1] and use the corresponding interval in train_buckets_scale.
     random_number_01 = np.random.random_sample()
-    bucket_id = min([i for i in xrange(len(train_buckets_scale))
+    bucket_id = min([i for i in range(len(train_buckets_scale))
                      if train_buckets_scale[i] > random_number_01])
 
     # not enough spectra left in this bucket of the current stack
@@ -3346,7 +3346,7 @@ def train_cycle(model,
       break
 
     # Get a RANDOM batch from the current stack and make a step.
-    random_index_list = random.sample(xrange(train_bucket_sizes[bucket_id]),
+    random_index_list = random.sample(range(train_bucket_sizes[bucket_id]),
                                       deepnovo_config.batch_size)
 
     # for testing
@@ -3695,7 +3695,7 @@ def test_true_feeding():
     print("Create model for testing")
     model = create_model(sess, training_mode=False)
 
-    for bucket_id in xrange(len(deepnovo_config._buckets)):
+    for bucket_id in range(len(deepnovo_config._buckets)):
 
       #~ if valid_set[bucket_id]: # bucket not empty
         #~ print("valid_set - bucket {0}".format(bucket_id))
@@ -4044,17 +4044,17 @@ def train_cycle_from_multiple_files(model,
   # to select a bucket, length of [scale[i], scale[i+1]] is proportional to
   # the size if i-th training bucket, as used later.
   train_bucket_sizes = [len(train_set[b])
-                        for b in xrange(len(deepnovo_config._buckets))]
+                        for b in range(len(deepnovo_config._buckets))]
   train_total_size = float(sum(train_bucket_sizes))
   print("train_bucket_sizes ", train_bucket_sizes)
   print("train_total_size ", train_total_size)
   train_buckets_scale = [sum(train_bucket_sizes[:i + 1]) / train_total_size
-                         for i in xrange(len(train_bucket_sizes))]
+                         for i in range(len(train_bucket_sizes))]
   print("train_buckets_scale ", train_buckets_scale)
 
   # to monitor the number of spectra in the current stack
   # that have been used for training
-  train_current_spectra = [0 for b in xrange(len(deepnovo_config._buckets))]
+  train_current_spectra = [0 for b in range(len(deepnovo_config._buckets))]
   # Get a batch and train
   while True:
 
@@ -4065,7 +4065,7 @@ def train_cycle_from_multiple_files(model,
     # Choose a bucket according to data distribution. We pick a random number
     # in [0, 1] and use the corresponding interval in train_buckets_scale.
     random_number_01 = np.random.random_sample()
-    bucket_id = min([i for i in xrange(len(train_buckets_scale))
+    bucket_id = min([i for i in range(len(train_buckets_scale))
                      if train_buckets_scale[i] > random_number_01])
 
     # not enough spectra left in this bucket of the current stack
@@ -4079,7 +4079,7 @@ def train_cycle_from_multiple_files(model,
       break
 
     # Get a RANDOM batch from the current stack and make a step.
-    random_index_list = random.sample(xrange(train_bucket_sizes[bucket_id]),
+    random_index_list = random.sample(range(train_bucket_sizes[bucket_id]),
                                       deepnovo_config.batch_size)
 
     # for testing

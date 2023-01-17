@@ -40,8 +40,8 @@ if config['denovo'].getboolean('beam_search'):
 print("DeNovo: Running the following command:\n")
 print(" ".join(kaiko_1_args) + "\n")
 
-# subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
-subprocess.call(kaiko_1_args, cwd = "Kaiko_denovo")
+subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
+# subprocess.call(kaiko_1_args, cwd = "Kaiko_denovo")
 
 
 
@@ -56,7 +56,7 @@ combine_denovo_output(config['denovo']['decode_dir'])
 diamond_args = ["./diamond", "blastp", "-d",
                 "../uniref100", "--min-score", "1",
                 "-q", "../../Kaiko_intermediate/combined_denovo.fasta", "-o",
-                "diamond_search_output.dmd", "-f", "6", "qseqid", 
+                "../../Kaiko_intermediate/diamond_search_output.dmd", "-f", "6", "qseqid", 
                 "stitle", "pident", "evalue", "mismatch"]
 
 
@@ -66,7 +66,7 @@ print(" ".join(diamond_args) + "\n")
 # subprocess.run(diamond_args, cwd = "diamond-2.0.15")
 os.chdir("Kaiko_volume/Kaiko_stationary_files/diamond-linux")
 os.system(" ".join(diamond_args))
-os.chdir("../../")
+os.chdir("../../../")
 
 
 

@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:1.2.1
+FROM tensorflow1.2.1-py36
 
 WORKDIR /Kaiko_pipeline
 ADD ./Kaiko_denovo /Kaiko_pipeline/Kaiko_denovo

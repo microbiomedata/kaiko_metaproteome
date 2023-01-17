@@ -8,6 +8,7 @@ diamond-2.0.15/*.dmnd
 diamond-2.0.15/*.sh
 diamond-2.0.15/
 Kaiko_volume/*
+/Kaiko_denovo_py27
 
 
 # pipeline outputs and inputs
@@ -136,3 +137,4 @@ dmypy.json
 
 # for mac
 .DS_Store
+docker log.txt

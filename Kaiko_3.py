@@ -14,6 +14,7 @@ def read_ncbi_taxa_lineage(rankedlineage_file, nodes_file):
     taxon_info = taxon_info.replace('\t\t', np.nan)
     for col in ['tax_name','species','genus','family','order','class','phylum','kingdom','superkingdom']:
         taxon_info[col] = taxon_info[col].str.extract(r'^\t(.*)\t$')[0].tolist()
+        # taxon_info[col] = taxon_info[col].str.extract(r'^\t(.*)\t$').tolist()
     del taxon_info['null']
     print('  taxon_info:', taxon_info.shape, taxon_info.tax_id.drop_duplicates().shape)
     
@@ -21,6 +22,7 @@ def read_ncbi_taxa_lineage(rankedlineage_file, nodes_file):
                      names=['tax_id','rank'])
     rank = rank.replace('\t\t', np.nan)
     rank['rank'] = rank['rank'].str.extract(r'^\t(.*)\t$')[0].tolist()
+    # rank['rank'] = rank['rank'].str.extract(r'^\t(.*)\t$').tolist()
     print('  rank:', rank.shape, rank.tax_id.drop_duplicates().shape)
     
     final_df = taxon_info.merge(rank, left_on='tax_id', right_on='tax_id')

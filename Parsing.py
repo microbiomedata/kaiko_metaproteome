@@ -17,7 +17,7 @@ config['denovo'] = {'topk' : False,
 
 config['diamond tally'] = {'diamond_output' : "Kaiko_volume/Kaiko_intermediate/denovo_output/diamond_search_output.dmd",
                            'ntops' : -1,
-                           'ncbi_taxa_folder' : "Kaiko_volume/Kaiko_stationary_files/diamond-linux",
+                           'ncbi_taxa_folder' : "Kaiko_volume/Kaiko_stationary_files/ncbi_taxa_2022-10-20",
                            'mode' : 'member',
                            'fout' : 'Kaiko_volume/Kaiko_intermediate/kaiko_prediction_top_taxa.csv',
                            'pident' : 100}

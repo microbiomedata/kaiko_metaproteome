@@ -84,7 +84,7 @@ def get_candidate_intensity(spectrum_original,
     # cdef int[:] row = ion_id_rows.astype(np.int32)
     # cdef int[:] col = aa_id_cols.astype(np.int32)
     # cdef int index
-    for index in xrange(ion_id_rows.size):
+    for index in range(ion_id_rows.size):
         # candidate_intensity_view[col[index], row[index], :] = spectrum_original_view[location_sub50_view[row[index], col[index]] : location_plus50_view[row[index], col[index]]] # TODO(nh2tran): line-too-long
         candidate_intensity[aa_id_cols[index], ion_id_rows[index], :] = spectrum_original[
                                                                         location_sub50[ion_id_rows[index], aa_id_cols[index]]:
@@ -140,7 +140,7 @@ def process_spectrum(spectrum_mz_list, spectrum_intensity_list, peptide_mass):
     # cdef float [:] spectrum_holder_view = spectrum_holder
     # note that different peaks may fall into the same location, hence loop +=
     # cdef int index
-    for index in xrange(neutral_mass_location.size):
+    for index in range(neutral_mass_location.size):
         #~     spectrum_holder_view[neutral_mass_location_view[index]] += norm_intensity_view[index] # TODO(nh2tran): line-too-long
         # spectrum_holder_view[neutral_mass_location_view[index]] = max(spectrum_holder_view[neutral_mass_location_view[index]], # TODO(nh2tran): line-too-long
         #                                                               norm_intensity_view[index]) # TODO(nh2tran): line-too-long

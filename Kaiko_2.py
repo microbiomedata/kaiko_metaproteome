@@ -37,7 +37,7 @@ def combine_denovo_output(directory, selection = 0.25):
         xx = xx.loc[xx['output_score'] != float("Inf")]
 
         xx = xx.sort_values('output_score', ascending = False)
-        xx = xx.head(int(floor(selection * floor(len(xx.index)))))
+        xx = xx.head(floor(selection * floor(len(xx.index))))
         #xx = xx[['scan', 'output_seq']]
 
         xx['pep_length'] = [len(peptide) for peptide in xx['output_seq']]
@@ -69,7 +69,7 @@ def combine_denovo_output(directory, selection = 0.25):
 
         with open('Kaiko_volume/Kaiko_intermediate/combined_denovo.fasta', 'a') as fasta_file:
             for line in to_write:
-                # fasta_file.write(f"{line}\n")
-                fasta_file.write(line + "\n")
+                fasta_file.write(f"{line}\n")
+                # fasta_file.write(line + "\n")
 
 
