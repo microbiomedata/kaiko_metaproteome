@@ -19,3 +19,5 @@ Currently, only .mgf files are supported. To use, simply follow these steps.
 2) Edit the ```config.yaml``` file within the root directory of this repo to include the location of the folder with the input. An example can be found in the current file ```config.yaml```.
 
 3) Run the command ``` python Kaiko_pipeline_main.py ```. The ```kaiko_defaults.yaml``` file will fill in any necessary parameters not present in ```config.yaml```
+
+The ```Kaiko_volume\Kaiko_intermediate\``` folder will be populated with a few intermediate files. These are named using the ```mgf_input``` folder name. The final FASTA output can be found within ```Kaiko_volume\Kaiko_output\``` folder, again named using the folder name of the input.
