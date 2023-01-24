@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This is a tool which uses neural networks to denovo identify peptides from raw proteomic input, which are then aligned against all protein sequences using a diamond search. This offers us a view of those organisms most likely to be present in the proteomic samples. Finally, we make a .FASTA file from the most likely organisms identified.
+This is a tool which uses neural networks to identify peptide sequences from raw proteomic input, which are then aligned against all protein sequences using a diamond search. This offers us a view of those organisms most likely to be present in the proteomic samples, with which we make a FASTA file from the most likely organisms identified.
 
 Put simply, this tool takes raw proteomic input and outputs a FASTA file of those organisms most likely to be present in the proteomic input.
 
