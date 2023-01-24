@@ -24,7 +24,7 @@ def summary_rank(group):
     ranks = group['rank']
     return min(ranks)
 
-def combine_denovo_output(directory, selection = 0.25):
+def combine_denovo_output(directory, prefix, selection = 0.25):
 
     files = [f for f in os.listdir(directory) if bool(re.search(r'_out.txt', f))]
     samples = []
@@ -67,7 +67,7 @@ def combine_denovo_output(directory, selection = 0.25):
         to_write[::2] = nms
         to_write[1::2] = summary['output_seq']
 
-        with open('Kaiko_volume/Kaiko_intermediate/combined_denovo.fasta', 'a') as fasta_file:
+        with open('Kaiko_volume/Kaiko_intermediate/' + prefix + '_combined_denovo.fasta', 'a') as fasta_file:
             for line in to_write:
                 fasta_file.write(f"{line}\n")
                 # fasta_file.write(line + "\n")

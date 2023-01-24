@@ -5,6 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 import socket
 import sys
+import cProfile
 
 import deepnovo_config
 import deepnovo_model
@@ -80,4 +81,9 @@ def main(_):
 
 
 if __name__ == "__main__":
-  tf.app.run()
+  if deepnovo_config.FLAGS.profile:
+    print("Running profiler")
+    cProfile.runctx("tf.app.run()", globals(), locals(), filename = "../Kaiko_volume/Kaiko_denovo.prof")
+  else:
+    print("Not running profiler")
+    tf.app.run()

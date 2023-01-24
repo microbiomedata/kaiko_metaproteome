@@ -152,6 +152,13 @@ tf.app.flags.DEFINE_boolean("decoy",
                             "Set to True to search decoy database.")
 
 FLAGS = tf.app.flags.FLAGS
+"""
+Kaiko cProfile addition
+"""
+
+tf.app.flags.DEFINE_boolean("profile",
+                             False,
+                             "Set to True to profile the denovo model")
 
 
 # ==============================================================================
