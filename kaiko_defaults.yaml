@@ -5,7 +5,6 @@ denovo:
   multi_decode: true
   profile: false
   topk: false
-  train_dir: model/
 diamond tally:
   mode: member
   ncbi_taxa_folder: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa_2022-10-20

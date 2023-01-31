@@ -3,6 +3,7 @@ import re
 import pandas as pd
 
 from math import floor
+from pathlib import Path
 
 ## This is a the same in function as the R script which combines the denovo output into a single fasta file.
 ## The only difference is that python and R handle ties in ordering differently. When a table is ordered,
@@ -12,25 +13,14 @@ files = [f for f in os.listdir(directory) if bool(re.search(r'_out.txt', f))]
 selection = 0.25
 samples = []
 
-def summary_times(group):
-    scans = group['scan']
-    return len(scans)
-
-def summary_scans(group):
-    scans = group['scan']
-    return "_".join(scans)
-
-def summary_rank(group):
-    ranks = group['rank']
-    return min(ranks)
-
+# @profile
 def combine_denovo_output(directory, prefix, selection = 0.25):
 
     files = [f for f in os.listdir(directory) if bool(re.search(r'_out.txt', f))]
     samples = []
 
     for file in files:
-        xx = pd.read_csv(directory + file, sep = "\t", header = 0)
+        xx = pd.read_csv(directory / file, sep = "\t", header = 0)
 
         xx['output_seq'] = [re.sub(",", "", str(peptide)) for peptide in xx['output_seq']]
         xx['output_seq'] = [re.sub("mod", "", str(peptide)) for peptide in xx['output_seq']]
@@ -48,11 +38,7 @@ def combine_denovo_output(directory, prefix, selection = 0.25):
 
         summary = grouped.apply(summary_times).to_frame()
         # summary = grouped.apply(summary_times)
-        print(file)
-        print(type(summary))
-        print(summary)
         summary['output_seq'] = summary.index
-        print(summary.columns)
         summary.columns = ['times', 'output_seq']
         summary = summary[['output_seq', 'times']]
         summary['rank'] = grouped.apply(summary_rank)
@@ -60,6 +46,7 @@ def combine_denovo_output(directory, prefix, selection = 0.25):
 
         samples += [summary]
 
+    combined_fasta = Path('Kaiko_volume/Kaiko_intermediate/' + prefix + '_combined_denovo.fasta')
 
     for summary in samples:
         nms = [">S" + summary['scans'][i] + "_" + str(summary['times'][i]) for i in range(len(summary))]
@@ -67,9 +54,21 @@ def combine_denovo_output(directory, prefix, selection = 0.25):
         to_write[::2] = nms
         to_write[1::2] = summary['output_seq']
 
-        with open('Kaiko_volume/Kaiko_intermediate/' + prefix + '_combined_denovo.fasta', 'a') as fasta_file:
+        with combined_fasta.open('a') as fasta_file:
             for line in to_write:
                 fasta_file.write(f"{line}\n")
                 # fasta_file.write(line + "\n")
 
+
+def summary_times(group):
+    scans = group['scan']
+    return len(scans)
+
+def summary_scans(group):
+    scans = group['scan']
+    return "_".join(scans)
+
+def summary_rank(group):
+    ranks = group['rank']
+    return min(ranks)
 

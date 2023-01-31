@@ -3030,6 +3030,7 @@ def decode(input_file=deepnovo_config.decode_test_file):
         print("  accuracy_len %.4f" % (num_len_match))
         print("  spectrum_time %.4f" % (spectrum_time))
 
+# @profile
 def multi_decode(input_dir=deepnovo_config.input_mgf_dir):
   """TODO(nh2tran): docstring."""
 

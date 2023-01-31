@@ -2,9 +2,117 @@
 
 import pandas as pd
 import numpy as np
-import argparse
-
 import time
+
+
+# @profile    
+def run_diamond_tally(diamond_output, ntops, ncbi_taxa_folder, mode, fout, pident):
+
+    filterby={}
+    if pident: filterby['pident'] = float(pident)
+    # #     if FLAGS.evalue: filterby['evalue'] = FLAGS.evalue
+    # #     if FLAGS.mismatch: filterby['mismatch'] = FLAGS.mismatch
+    print('filterby:', filterby)
+
+    ############################################################
+    # retrieve taxa lineage info such as taxa rank and lineage
+    ############################################################
+    print("Retrieving taxa lineage info...")
+    taxa_table = read_ncbi_taxa_lineage(ncbi_taxa_folder / 'rankedlineage.dmp', 
+                                        ncbi_taxa_folder / 'nodes.dmp')
+    
+    ############################################################
+    # read diamond output file
+    ############################################################
+    print("Reading diamond output file...")
+    dmd = read_dmd(diamond_output)
+
+    ############################################################
+    # filter by quality and taxa
+    ############################################################
+    print("Filtering by quality and taxa...")
+    filtered_dmd = dmd_filter(dmd, filterby=filterby)
+    filtered_dmd = collect_taxid(filtered_dmd)
+    filtered_dmd['uniref_id'] = [i[0] for i in filtered_dmd.uniref_seq.str.split(" ",1)]
+
+    ############################################################
+    # garbage collection
+    ############################################################
+    print("Garbage collection...")
+    del dmd
+    import gc
+    gc.collect()
+    
+    ############################################################
+    # retrieve UniRef100 representative taxa and its members
+    ############################################################
+    print("Retrieving UniRef100 representative taxa and members...")
+    unique_unirefs = set(filtered_dmd.uniref_id.drop_duplicates())
+    taxa_member_tbl = get_taxa_members(ncbi_taxa_folder / 'uniref100_member_taxa_tbl.csv',
+                                       unique_unirefs)
+    
+    ############################################################
+    # merge
+    ############################################################
+    print("Adding taxa members...")
+    merged = filtered_dmd.merge(taxa_member_tbl, left_on="uniref_id", right_on="uid", how="inner")
+    print("  Final table size:{}".format(merged.shape))
+    
+    if merged.shape[0]!=filtered_dmd.shape[0]:
+        print("[WARN] You might use the different version of UniRef100.fasta and .xml")
+    
+    # get the member taxa of each (scan, uid)
+    unique_members = []
+    scanids = merged.scans.tolist()
+    uids = merged.uid.tolist()
+    commons = merged.common_taxa.tolist()
+    for ii, members in enumerate(merged.members.str.split(":").tolist()):
+        for mm in members:
+            unique_members.append({"scan":scanids[ii], "uid":uids[ii], "member_taxa":int(mm), "common_taxa":int(commons[ii])})
+    print("  #members:{}".format(len(unique_members)))
+    members_df = pd.DataFrame(unique_members)
+
+    ############################################################
+    # top-rank taxa
+    ############################################################
+    print("Filtering top-rank taxa by hits...")
+    
+    if mode=="member":
+        taxa_col = 'member_taxa'
+    elif mode=="common":
+        taxa_col = 'common_taxa'
+    else:
+        print("  [ERR] please select the mode to be either 'member' or 'common'.")
+        return
+    
+    unique_pepseq_taxa = members_df.drop_duplicates(subset=['scan',taxa_col])
+    pepcount_taxid = unique_pepseq_taxa[taxa_col].value_counts()
+
+    print('  unique peptides: {}'.format(members_df.scan.value_counts().shape[0]))
+    print('  unique taxa: {}'.format(pepcount_taxid.shape[0]))
+
+    def besthit(row):
+        return pepcount_taxid[row[taxa_col]].nlargest(1, keep='all').index.tolist()
+
+    besthits = []
+    for besthit in unique_pepseq_taxa.groupby(by='scan').apply(besthit):
+        besthits += besthit
+    besthits = pd.Series(besthits).value_counts()
+    
+    if ntops > 0:
+        _ntops = ntops
+    else:
+        _ntops = besthits.shape[0]
+    
+    top_taxa = besthits.nlargest(_ntops, keep='all').to_frame(name='hits')
+
+    ############################################################
+    # save top-rank taxa info
+    ############################################################
+    print("Saving top-rank taxa info...")
+    df = pd.concat([taxa_table, top_taxa], join='inner', axis=1)
+    df.index.name = 'tax_id'
+    if fout: df.sort_values(by="hits", ascending=False).to_csv(fout)
 
 # taxon info
 def read_ncbi_taxa_lineage(rankedlineage_file, nodes_file):
@@ -97,112 +205,5 @@ def get_taxa_members(member_tbl_file, unique_unirefs):
     df = pd.concat(dfs)
     print("  #Chunk:{}, Size:{}, {:.2f}min".format(len(dfs), df.shape, (time.time()-stime)/60))
     return df
-    
-def run_diamond_tally(diamond_output, ntops, ncbi_taxa_folder, mode, fout, pident):
 
-    filterby={}
-    if pident: filterby['pident'] = float(pident)
-    # #     if FLAGS.evalue: filterby['evalue'] = FLAGS.evalue
-    # #     if FLAGS.mismatch: filterby['mismatch'] = FLAGS.mismatch
-    print('filterby:', filterby)
-
-    ############################################################
-    # retrieve taxa lineage info such as taxa rank and lineage
-    ############################################################
-    print("Retrieving taxa lineage info...")
-    taxa_table = read_ncbi_taxa_lineage(ncbi_taxa_folder+'/rankedlineage.dmp', 
-                                        ncbi_taxa_folder+'/nodes.dmp')
-    
-    ############################################################
-    # read diamond output file
-    ############################################################
-    print("Reading diamond output file...")
-    dmd = read_dmd(diamond_output)
-
-    ############################################################
-    # filter by quality and taxa
-    ############################################################
-    print("Filtering by quality and taxa...")
-    filtered_dmd = dmd_filter(dmd, filterby=filterby)
-    filtered_dmd = collect_taxid(filtered_dmd)
-    filtered_dmd['uniref_id'] = [i[0] for i in filtered_dmd.uniref_seq.str.split(" ",1)]
-
-    ############################################################
-    # garbage collection
-    ############################################################
-    print("Garbage collection...")
-    del dmd
-    import gc
-    gc.collect()
-    
-    ############################################################
-    # retrieve UniRef100 representative taxa and its members
-    ############################################################
-    print("Retrieving UniRef100 representative taxa and members...")
-    unique_unirefs = set(filtered_dmd.uniref_id.drop_duplicates())
-    taxa_member_tbl = get_taxa_members(ncbi_taxa_folder + '/uniref100_member_taxa_tbl.csv',
-                                       unique_unirefs)
-    
-    ############################################################
-    # merge
-    ############################################################
-    print("Adding taxa members...")
-    merged = filtered_dmd.merge(taxa_member_tbl, left_on="uniref_id", right_on="uid", how="inner")
-    print("  Final table size:{}".format(merged.shape))
-    
-    if merged.shape[0]!=filtered_dmd.shape[0]:
-        print("[WARN] You might use the different version of UniRef100.fasta and .xml")
-    
-    # get the member taxa of each (scan, uid)
-    unique_members = []
-    scanids = merged.scans.tolist()
-    uids = merged.uid.tolist()
-    commons = merged.common_taxa.tolist()
-    for ii, members in enumerate(merged.members.str.split(":").tolist()):
-        for mm in members:
-            unique_members.append({"scan":scanids[ii], "uid":uids[ii], "member_taxa":int(mm), "common_taxa":int(commons[ii])})
-    print("  #members:{}".format(len(unique_members)))
-    members_df = pd.DataFrame(unique_members)
-
-    ############################################################
-    # top-rank taxa
-    ############################################################
-    print("Filtering top-rank taxa by hits...")
-    
-    if mode=="member":
-        taxa_col = 'member_taxa'
-    elif mode=="common":
-        taxa_col = 'common_taxa'
-    else:
-        print("  [ERR] please select the mode to be either 'member' or 'common'.")
-        return
-    
-    unique_pepseq_taxa = members_df.drop_duplicates(subset=['scan',taxa_col])
-    pepcount_taxid = unique_pepseq_taxa[taxa_col].value_counts()
-
-    print('  unique peptides: {}'.format(members_df.scan.value_counts().shape[0]))
-    print('  unique taxa: {}'.format(pepcount_taxid.shape[0]))
-
-    def besthit(row):
-        return pepcount_taxid[row[taxa_col]].nlargest(1, keep='all').index.tolist()
-
-    besthits = []
-    for besthit in unique_pepseq_taxa.groupby(by='scan').apply(besthit):
-        besthits += besthit
-    besthits = pd.Series(besthits).value_counts()
-    
-    if ntops > 0:
-        _ntops = ntops
-    else:
-        _ntops = besthits.shape[0]
-    
-    top_taxa = besthits.nlargest(_ntops, keep='all').to_frame(name='hits')
-
-    ############################################################
-    # save top-rank taxa info
-    ############################################################
-    print("Saving top-rank taxa info...")
-    df = pd.concat([taxa_table, top_taxa], join='inner', axis=1)
-    df.index.name = 'tax_id'
-    if fout: df.sort_values(by="hits", ascending=False).to_csv(fout)
 

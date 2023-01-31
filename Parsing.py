@@ -13,8 +13,9 @@ config['denovo'] = {'topk' : False,
                     'profile' : False,
                     'beam_size' : 5,
                     'mgf_dir' : 'Kaiko_volume/Kaiko_input_files/',
+                    # 'train_dir' : 'model/'
                     # 'decode_dir' : 'Kaiko_volume/Kaiko_intermediate/denovo_output/',
-                    'train_dir' : 'model/'}
+                    }
 
 
 config['diamond tally'] = {'ntops' : -1,
