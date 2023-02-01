@@ -25,9 +25,9 @@ if user_config_path.exists():
             config[section][param] = config_user[section][param]
 
 
-## handling any backslashes with this.
-mgf_dir = PureWindowsPath(config['denovo']['mgf_dir']).as_posix()
-mgf_dir = Path(mgf_dir)
+## handling any backslashes with this. All final paths used here have forward slashes, 
+## as they are compatible in Windows, Linux, and Mac.
+mgf_dir = Path(PureWindowsPath(config['denovo']['mgf_dir']).as_posix())
 ncbi_taxa_folder = Path(PureWindowsPath(config['diamond tally']['ncbi_taxa_folder']).as_posix())
 ref_fasta = Path(PureWindowsPath(config['taxa to fasta']['ref_fasta']).as_posix())
 prefix = mgf_dir.name
