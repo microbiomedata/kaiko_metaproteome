@@ -20,10 +20,8 @@ Currently, only .mgf files are supported. To use, simply follow these steps.
 
 3) Run the command ``` python Kaiko_pipeline_main.py ```. The ```kaiko_defaults.yaml``` file will fill in any necessary parameters not present in ```config.yaml```
 
-<<<<<<< Updated upstream
-The ```Kaiko_volume\Kaiko_intermediate\``` folder will be populated with a few intermediate files. These are named using the ```mgf_input``` folder name. The final FASTA output can be found within ```Kaiko_volume\Kaiko_output\``` folder, again named using the folder name of the input.
-=======
-4) If you would like to profile the pipeline using cProfile, add the profile = True flag.
 
 The ```Kaiko_volume\Kaiko_intermediate\``` folder will be populated with a few intermediate files. These are named using the ```mgf_input``` folder name. The final FASTA output can be found within ```Kaiko_volume\Kaiko_output\``` folder, again named using the folder name of the input.
->>>>>>> Stashed changes
+
+4) If you would like to profile the pipeline using cProfile, add the profile = True flag.
+
