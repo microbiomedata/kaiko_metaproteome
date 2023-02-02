@@ -33,7 +33,7 @@ To use the pipeline within Docker, follow steps 1-2, but instea
 
 4) (Docker) Run the command ```docker build . -t kaiko-py36``` to build the Kaiko docker image using the tensorflow image from 4.1
 
-5) (Docker) Run the command ```docker run --name Kaiko_container-py36 -v (absolute path to Kaiko_pipeline)/Kaiko_volume/:/Kaiko_pipeline/Kaiko_volume -t -d kaiko-py36```, where (absolute path to Kaiko_pipeline) is the path to the repo folder Kaiko_pipeline. This mounts the Kaiko_volume folder to Docker, and this is where the output will be stored by Docker. For example, such a command may look like ```docker run --name Kaiko_container-py36 -v C:/Users/memmys/Documents/GitHub/Kaiko_pipeline/Kaiko_volume/:/Kaiko_pipeline/Kaiko_volume -t -d kaiko-py36```
+5) (Docker) Run the command ```docker run --name Kaiko_container-py36 -v abs_path_Kaiko_volume:/Kaiko_pipeline/Kaiko_volume -t -d kaiko-py36```, where (absolute path to Kaiko_pipeline) is the path to the repo folder Kaiko_pipeline. This mounts the Kaiko_volume folder to Docker, and this is where the output will be stored by Docker. For example, such a command may look like ```docker run --name Kaiko_container-py36 -v C:/Users/memmys/Documents/GitHub/Kaiko_pipeline/Kaiko_volume/:/Kaiko_pipeline/Kaiko_volume -t -d kaiko-py36```
 
 The ```Kaiko_volume\Kaiko_intermediate\``` folder will be populated with a few intermediate files. These are named using the ```mgf_input``` folder name. The final FASTA output can be found within ```Kaiko_volume\Kaiko_output\``` folder, again named using the folder name of the input.
 
