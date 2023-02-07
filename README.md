@@ -13,7 +13,7 @@ Before first use, a few database files are needed.
 
 ### Downloading Files
 
-Download the following files to the ```Kaiko_volume/Kaiko_intermediate``` folder.
+Download the following files to the ```Kaiko_volume/Kaiko_stationary_files``` folder.
 
 1) [UniRef100 FASTA](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz) Large file, 80 Gb+.
 
