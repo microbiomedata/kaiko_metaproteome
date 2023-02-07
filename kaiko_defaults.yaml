@@ -8,7 +8,7 @@ denovo:
 diamond tally:
   diamond_folder: Kaiko_volume/Kaiko_stationary_files/diamond
   mode: member
-  ncbi_taxa_folder: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa_2022-10-20
+  ncbi_taxa_folder: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa
   ntops: -1
   pident: 100
 taxa to fasta:

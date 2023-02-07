@@ -19,7 +19,7 @@ Download the following files to the ```Kaiko_volume/Kaiko_stationary_files``` fo
 
 2) [UniRef100 XML](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz) Large file, 100 Gb+.
 
-3) [NCBI Taxonomy dump](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz)
+3) [NCBI Taxonomy dump](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz) Less than 1Gb.
 
 4) [Diamond search](https://github.com/bbuchfink/diamond/releases), choosing the appropriate system. If using Docker, get the Linux version.
 
@@ -37,7 +37,7 @@ Download the following files to the ```Kaiko_volume/Kaiko_stationary_files``` fo
 ### Check
 
 In the end, ```Kaiko_volume/Kaiko_stationary_files``` should have two new files, ```uniref100.dmnd``` and ```uniref100.fasta```. It should also contain two folders, ```Kaiko_volume/Kaiko_stationary_files/diamond``` and ```Kaiko_volume/Kaiko_stationary_files/ncbi_taxa```, if using default names. 
-The diamond folder should contain the diamond file, while the taxa_folder should contain the contents of the NCBI Taxanomy dump (.dmp files), and the file ```uniref100_member_taxa_tbl.csv```. If the names of these two new folders differ from the default used in the readme, the config.yaml file must be edited to point to these new folders. See the default.yaml file for an example.
+The diamond folder should contain the diamond file, while the taxa_folder should contain the contents of the NCBI Taxanomy dump (.dmp files), and the file ```uniref100_member_taxa_tbl.csv```. If the names of these two new folders differ from the default used in the readme, the config.yaml file must be edited to point to these new folders, see the repo config.yaml for an example.
 
 
 ## Usage
