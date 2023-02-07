@@ -9,6 +9,24 @@ The pipeline uses neural networks to identify peptide sequences from raw proteom
 
 ## Setup
 
+Before first use, a few database files are needed.
+
+### Downloading Files
+
+1) [UniRef100 FASTA](ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz)
+
+2) [UniRef100 XML](ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz)
+
+3) [NCBI Taxanomy dump](ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz)
+
+4) [Diamond search](https://github.com/bbuchfink/diamond/releases), choosing the appropriate system. If using Docker, get the Linux version.
+
+### Processing
+
+1) Extract the diamond file from step 4 into its own folder within ```Kaiko_volume/Kaiko_stationary```
+
+2) Copy UniRef100.fasta.gz to the ```Kaiko_volume/Kaiko_stationary``` folder.
+
 
 ## Usage
 

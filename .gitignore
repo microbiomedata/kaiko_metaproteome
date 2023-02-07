@@ -15,7 +15,9 @@ Kaiko_volume/Kaiko_intermediate/denovo_output/*
 Kaiko_volume/Kaiko_output/*
 Kaiko_volume/Kaiko_stationary_files/*
 /Kaiko_denovo_py27
+/Kaiko_denovo/src-*
 /Kaiko_old
+/Dockerfile-py27
 
 !Kaiko_volume/Kaiko_intermediate/denovo_output/README.txt
 !Kaiko_volume/Kaiko_stationary_files/README.txt
