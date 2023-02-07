@@ -65,5 +65,7 @@ To use the pipeline within Docker, follow steps 1-2 in Usage, then jump here:
 
 5) (Docker) Run the command ```docker run --name Kaiko_container-py36 -v path_Kaiko_volume:/Kaiko_pipeline/Kaiko_volume -t -d kaiko-py36```, where path_Kaiko_volume is the absolute path to the Kaiko_volume folder. This allows Docker to store the outputs in Kaiko_volume. For example, such a command may look like ```docker run --name Kaiko_container-py36 -v C:/Users/memmys/Documents/GitHub/Kaiko_pipeline/Kaiko_volume/:/Kaiko_pipeline/Kaiko_volume -t -d kaiko-py36```
 
+6) (Docker) Make sure to update the config file to point to the Linux version of diamond. See the setup for more details.
+
 The ```Kaiko_volume/Kaiko_intermediate/``` folder will be populated with a few intermediate files. These are named using the ```mgf_input``` folder name. The final FASTA output can be found within ```Kaiko_volume/Kaiko_output/``` folder, again named using the folder name of the input.
 
