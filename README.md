@@ -27,7 +27,7 @@ Download the following files to the ```Kaiko_volume/Kaiko_stationary_files``` fo
 
 1) Extract the diamond file from step 4 into its own folder within ```Kaiko_volume/Kaiko_stationary_files```, eg ```Kaiko_volume/Kaiko_stationary_files/diamond```. 
 
-2) Within a command prompt, navigate to the diamond folder created in the previous step and run ```diamond makedb --in ../uniref100.fasta.gz --db ../uniref100```. The process can take a while.
+2) Within a command prompt, navigate to the diamond folder created in the previous step and run ```diamond makedb --in ../uniref100.fasta.gz --db ../uniref100```. The process can take a while. Note: If using Linux or Mac, replace ```diamond``` with ```./diamond```.
 
 3) Extract the contents of NCBI Taxonomy dump to its own folder within ```Kaiko_volume/Kaiko_stationary_files```, eg ```Kaiko_volume/Kaiko_stationary_files/ncbi_taxa```.
 
