@@ -27,9 +27,11 @@ if user_config_path.exists():
 
 ## handling any backslashes with this. All final paths used here have forward slashes, 
 ## as they are compatible in Windows, Linux, and Mac.
+working_dir = Path(Path('.').resolve().as_posix())
 mgf_dir = Path(PureWindowsPath(config['denovo']['mgf_dir']).as_posix())
 ncbi_taxa_folder = Path(PureWindowsPath(config['diamond tally']['ncbi_taxa_folder']).as_posix())
 ref_fasta = Path(PureWindowsPath(config['taxa to fasta']['ref_fasta']).as_posix())
+diamond_folder = Path(PureWindowsPath(config['diamond tally']['diamond_folder']).as_posix())
 prefix = mgf_dir.name
 
 denovout_dir = Path('Kaiko_volume/Kaiko_intermediate/denovo_output/' + prefix)
@@ -71,7 +73,12 @@ denovo_combined_fasta = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_com
 diamond_search_out = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_diamond_search_output.dmd")
 
 ## Step 3. Passing to diamond
-diamond_args = ["./diamond", "blastp", "-d",
+if os.name == 'posix':
+    diamond_args = ["./diamond"]
+else:
+    diamond_args = ["diamond"]
+    
+diamond_args = diamond_args + ["blastp", "-d",
                 "../uniref100", "--min-score", "1",
                 "-q", denovo_combined_fasta.resolve().as_posix(), "-o",
                 diamond_search_out.resolve().as_posix(), "-f", "6", "qseqid", 
@@ -83,9 +90,10 @@ print(" ".join(diamond_args) + "\n")
 
 
 # os.chdir("Kaiko_volume/Kaiko_stationary_files/diamond-2.0.15")
-os.chdir("Kaiko_volume/Kaiko_stationary_files/diamond-linux")
+os.chdir(diamond_folder)
+print(os.getcwd())
 os.system(" ".join(diamond_args))
-os.chdir("../../../")
+os.chdir(working_dir)
 
 kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction_top_taxa.csv")
 

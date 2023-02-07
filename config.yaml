@@ -2,5 +2,8 @@ denovo:
   beam_search: True
   beam_size: 5
   multi_decode: true
-  mgf_dir: Kaiko_volume/Kaiko_input_files/mgf_large
+  mgf_dir: Kaiko_volume/Kaiko_input_files/mgf_small
+diamond tally:
+  diamond_folder: 'Kaiko_volume/Kaiko_stationary_files/diamond-2.0.15'
+
 

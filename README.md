@@ -15,27 +15,28 @@ Before first use, a few database files are needed.
 
 Download the following files to the ```Kaiko_volume/Kaiko_intermediate``` folder.
 
-1) [UniRef100 FASTA](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz)
+1) [UniRef100 FASTA](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz) Large file, 80 Gb+.
 
-2) [UniRef100 XML](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz)
+2) [UniRef100 XML](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz) Large file, 100 Gb+.
 
-3) [NCBI Taxanomy dump](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz)
+3) [NCBI Taxonomy dump](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz)
 
 4) [Diamond search](https://github.com/bbuchfink/diamond/releases), choosing the appropriate system. If using Docker, get the Linux version.
 
 ### Processing
 
-1) Extract the diamond file from step 4 into its own folder within ```Kaiko_volume/Kaiko_stationary```, eg ```Kaiko_volume/Kaiko_stationary/diamond```. 
+1) Extract the diamond file from step 4 into its own folder within ```Kaiko_volume/Kaiko_stationary_files```, eg ```Kaiko_volume/Kaiko_stationary_files/diamond```. 
 
 2) Within a command prompt, navigate to the diamond folder created in the previous step and run ```diamond makedb --in ../uniref100.fasta.gz --db ../uniref100```. The process can take a while.
 
-3) Extract the contents of NCBI Taxonomy dump to its own folder within ```Kaiko_volume/Kaiko_stationary```, eg ```Kaiko_volume/Kaiko_stationary/ncbi_taxa```.
+3) Extract the contents of NCBI Taxonomy dump to its own folder within ```Kaiko_volume/Kaiko_stationary_files```, eg ```Kaiko_volume/Kaiko_stationary_files/ncbi_taxa```.
 
-4) Within a command prompt, navigate to the ```Kaiko_volume/Kaiko_stationary``` folder and run ```python ExtractUniRefMembers.py```. This will make the file ```uniref100_member_taxa_tbl.csv``` within ```Kaiko_volume/Kaiko_stationary```. Copy this file into the taxa folder from step 3, eg ```Kaiko_volume/Kaiko_stationary/ncbi_taxa```. This step can also take some time.
+4) Within a command prompt, navigate to the ```Kaiko_volume/Kaiko_stationary_files``` folder and run ```python ExtractUniRefMembers.py```. This will make the file ```uniref100_member_taxa_tbl.csv``` within ```Kaiko_volume/Kaiko_stationary_files```. Copy this file into the taxa folder from step 3, eg ```Kaiko_volume/Kaiko_stationary_files/ncbi_taxa```. This step can also take some time.
+
 
 ### Check
 
-In the end, ```Kaiko_volume/Kaiko_stationary``` should have two new files, ```uniref100.dmnd``` and ```uniref100.fasta```. It should also contain two folders, ```Kaiko_volume/Kaiko_stationary/diamond``` and ```Kaiko_volume/Kaiko_stationary/ncbi_taxa```, if using default names. 
+In the end, ```Kaiko_volume/Kaiko_stationary_files``` should have two new files, ```uniref100.dmnd``` and ```uniref100.fasta```. It should also contain two folders, ```Kaiko_volume/Kaiko_stationary_files/diamond``` and ```Kaiko_volume/Kaiko_stationary_files/ncbi_taxa```, if using default names. 
 The diamond folder should contain the diamond file, while the taxa_folder should contain the contents of the NCBI Taxanomy dump (.dmp files), and the file ```uniref100_member_taxa_tbl.csv```. If the names of these two new folders differ from the default used in the readme, the config.yaml file must be edited to point to these new folders. See the default.yaml file for an example.
 
 

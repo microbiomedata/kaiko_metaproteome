@@ -9,7 +9,7 @@ config = {}
 
 config['denovo'] = {'topk' : False, 
                     'multi_decode' : True,
-                    'beam_search' : False,
+                    'beam_search' : True,
                     'profile' : False,
                     'beam_size' : 5,
                     'mgf_dir' : 'Kaiko_volume/Kaiko_input_files/',
@@ -19,6 +19,7 @@ config['denovo'] = {'topk' : False,
 
 
 config['diamond tally'] = {'ntops' : -1,
+                           'diamond_folder' : 'Kaiko_volume/Kaiko_stationary_files/diamond',
                            'ncbi_taxa_folder' : "Kaiko_volume/Kaiko_stationary_files/ncbi_taxa_2022-10-20",
                            'mode' : 'member',
                           #  'fout' : 'Kaiko_volume/Kaiko_intermediate/kaiko_prediction_top_taxa.csv',
