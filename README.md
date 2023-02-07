@@ -13,19 +13,25 @@ Before first use, a few database files are needed.
 
 ### Downloading Files
 
-1) [UniRef100 FASTA](ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz)
+Download the following files to the ```Kaiko_volume/Kaiko_intermediate``` folder.
 
-2) [UniRef100 XML](ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz)
+1) [UniRef100 FASTA](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz)
 
-3) [NCBI Taxanomy dump](ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz)
+2) [UniRef100 XML](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz)
+
+3) [NCBI Taxanomy dump](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz)
 
 4) [Diamond search](https://github.com/bbuchfink/diamond/releases), choosing the appropriate system. If using Docker, get the Linux version.
 
 ### Processing
 
-1) Extract the diamond file from step 4 into its own folder within ```Kaiko_volume/Kaiko_stationary```
+1) Extract the diamond file from step 4 into its own folder within ```Kaiko_volume/Kaiko_stationary```, eg ```Kaiko_volume/Kaiko_stationary/diamond```.
 
-2) Copy UniRef100.fasta.gz to the ```Kaiko_volume/Kaiko_stationary``` folder.
+2) Within a command prompt, navigate to the diamond folder created in the previous step and run ```diamond makedb --in ../uniref100.fasta.gz --db ../uniref100```.
+
+3) Extract the contents of NCBI Taxonomy dump to its own folder within ```Kaiko_volume/Kaiko_stationary```, eg ```Kaiko_volume/Kaiko_stationary/ncbi_taxa```.
+
+4) 
 
 
 ## Usage
