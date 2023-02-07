@@ -53,7 +53,7 @@ Currently, only .mgf files are supported. To use, simply follow these steps.
 
 The ```Kaiko_volume/Kaiko_intermediate/``` folder will be populated with a few intermediate files. These are named using the ```mgf_input``` folder name. The final FASTA output can be found within ```Kaiko_volume/Kaiko_output/``` folder, again named using the folder name of the input.
 
-4) If you would like to profile the pipeline using cProfile, add the ```profile = True``` flag. To use memory-profiler, within the main repo directory, run ```mprof run --include-children Kaiko_pipeline_main.py```.
+4) If you would like to profile the pipeline using cProfile, add the ```profile = True``` flag to the config file. To use memory-profiler, within the main repo directory, run ```mprof run --include-children Kaiko_pipeline_main.py```.
 
 ## Usage with Docker
 
