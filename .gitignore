@@ -23,6 +23,7 @@ Kaiko_volume/Kaiko_stationary_files/*
 !Kaiko_volume/Kaiko_stationary_files/README.txt
 !Kaiko_volume/Kaiko_intermediate/README.txt
 !Kaiko_volume/Kaiko_output/README.txt
+!Kaiko_volume/Kaiko_stationary_files/ExtractUniRefMembers.py
 
 # pipeline outputs and inputs
 pipeline_input/*.MGF
