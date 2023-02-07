@@ -44,7 +44,7 @@ The diamond folder should contain the diamond file, while the taxa_folder should
 
 Currently, only .mgf files are supported. To use, simply follow these steps.
 
-1) Place the input into a separate folder WITHIN the ```Kaiko_volume\Kaiko_input_files\``` directory. This folder should have a descriptive name. 
+1) Place the input into a separate folder WITHIN the ```Kaiko_volume/Kaiko_input_files/``` directory. This folder should have a descriptive name. 
 
 2) Edit the ```config.yaml``` file within the root directory of this repo to include the location of the folder with the input. An example can be found in the current file ```config.yaml```.
 
