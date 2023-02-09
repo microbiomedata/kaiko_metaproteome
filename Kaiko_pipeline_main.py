@@ -15,7 +15,7 @@ from Kaiko_2 import combine_denovo_output
 
 kaiko_defaults_path = Path('kaiko_defaults.yaml')
 config = yaml.safe_load(kaiko_defaults_path.open())
-user_config_path = Path('config.yaml')
+user_config_path = Path('Kaiko_volume/config.yaml')
 
 if user_config_path.exists():
     config_user = yaml.safe_load(user_config_path.open())

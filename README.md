@@ -46,7 +46,7 @@ Currently, only .mgf files are supported. To use, simply follow these steps.
 
 1) Place the input into a separate folder WITHIN the ```Kaiko_volume/Kaiko_input_files/``` directory. This folder should have a descriptive name. 
 
-2) Edit the ```config.yaml``` file within the root directory of this repo to include the location of the folder with the input. An example can be found in the current file ```config.yaml```.
+2) Edit the ```config.yaml``` file within the ```Kaiko_volume``` directory to include the location of the folder with the input. An example can be found in the current file ```config.yaml```.
 
 3) Run the command ``` python Kaiko_pipeline_main.py ``` within the main directory of this repo. The ```kaiko_defaults.yaml``` file will fill in any necessary parameters not present in ```config.yaml```
 
@@ -63,7 +63,7 @@ To use the pipeline within Docker, follow steps 1-2 in Usage, then jump here:
 
 4) (Docker) Run the command ```docker build . -t kaiko-py36``` to build the Kaiko docker image using the tensorflow image from step 3)
 
-5) (Docker) Run the command ```docker run --name Kaiko_container-py36 -v path_Kaiko_volume:/Kaiko_pipeline/Kaiko_volume -t -d kaiko-py36```, where path_Kaiko_volume is the absolute path to the Kaiko_volume folder. This allows Docker to store the outputs in Kaiko_volume. For example, such a command may look like ```docker run --name Kaiko_container-py36 -v C:/Users/memmys/Documents/GitHub/Kaiko_pipeline/Kaiko_volume/:/Kaiko_pipeline/Kaiko_volume -t -d kaiko-py36```
+5) (Docker) Run the command ```docker run --name Kaiko_container-py36 -v path_Kaiko_volume:/Kaiko_pipeline/Kaiko_volume kaiko-py36 python Kaiko_pipeline_main.py```, where path_Kaiko_volume is the absolute path to the Kaiko_volume folder. This allows Docker to store the outputs in Kaiko_volume. For example, such a command may look like ```docker run --name Kaiko_container-py36 -v C:/Users/memmys/Documents/GitHub/Kaiko_pipeline/Kaiko_volume/:/Kaiko_pipeline/Kaiko_volume kaiko-py36 python Kaiko_pipeline_main.py```
 
 6) (Docker) Make sure to update the config file to point to the Linux version of diamond. See the setup for more details.
 
