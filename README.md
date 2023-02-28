@@ -69,3 +69,8 @@ To use the pipeline within Docker, follow steps 1-2 in Usage, then jump here:
 
 The ```Kaiko_volume/Kaiko_intermediate/``` folder will be populated with a few intermediate files. These are named using the ```mgf_input``` folder name. The final FASTA output can be found within ```Kaiko_volume/Kaiko_output/``` folder, again named using the folder name of the input.
 
+
+## Unit Tests
+
+After installing the files, we can ensure the denovo network is producing the expected output given the model. To do this, navigate to the main repo folder in a command prompt and run ```python kaiko_unit_test.py```. This runs the denovo model on a predetermined dataset and compares line by line to stored output.
+
