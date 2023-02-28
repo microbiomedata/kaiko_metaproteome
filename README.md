@@ -72,5 +72,5 @@ The ```Kaiko_volume/Kaiko_intermediate/``` folder will be populated with a few i
 
 ## Unit Tests
 
-After installing the files, we can ensure the denovo network is producing the expected output given the model. To do this, navigate to the main repo folder in a command prompt and run ```python kaiko_unit_test.py```. This runs the denovo model on a predetermined dataset and compares line by line to stored output.
+After installing the files, we should ensure the denovo network is producing the expected output given the model. To do this, navigate to the main repo folder in a command prompt and run ```python kaiko_unit_test.py```. This runs the denovo model on a predetermined dataset and compares line by line to stored output.
 
