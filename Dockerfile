@@ -6,6 +6,8 @@ ADD ./Kaiko_2.py /Kaiko_pipeline
 ADD ./Kaiko_3.py /Kaiko_pipeline
 ADD ./Kaiko_4.py /Kaiko_pipeline
 ADD ./Kaiko_pipeline_main.py /Kaiko_pipeline
+ADD ./kaiko_unit_test.py /Kaiko_pipeline
+ADD ./unit_test_util.py /Kaiko_pipeline
 ADD ./kaiko_defaults.yaml /Kaiko_pipeline
 
 RUN pip install --no-cache-dir --upgrade pip && \ 
