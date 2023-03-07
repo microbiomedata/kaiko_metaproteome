@@ -43,6 +43,8 @@ from tensorflow.python.ops import rnn_cell
 from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.ops import variable_scope
 
+from tensorflow.contrib.rnn.python.ops import core_rnn_cell
+
 import deepnovo_config
 import deepnovo_model_training
 
@@ -346,7 +348,7 @@ class ModelNetwork(object):
         # linear transform to logit [128, 26]
         # TODO(nh2tran): replace _linear and remove scope
         with tf.variable_scope("output_logit"):
-          feature_logit = rnn_cell_impl._linear(args=feature,
+          feature_logit = core_rnn_cell._linear(args=feature,
                                                 output_size=self.vocab_size,
                                                 bias=True,
                                                 bias_initializer=None,#0.1,
@@ -449,7 +451,7 @@ class ModelNetwork(object):
     # linear transform to logit [128, 26], in case only cnn_ion model is used
     # TODO(nh2tran): replace _linear and remove scope
     with tf.variable_scope("intensity_output_projected"):
-      cnn_ion_logit = rnn_cell_impl._linear(args=cnn_ion_feature,
+      cnn_ion_logit = core_rnn_cell._linear(args=cnn_ion_feature,
                                             output_size=self.vocab_size,
                                             bias=True,
                                             bias_initializer=None,#0.1,
@@ -628,7 +630,7 @@ class ModelNetwork(object):
     # linear transform to logit [128, 26], in case only lstm model is used
     # TODO(nh2tran): replace _linear and remove scope
     with tf.variable_scope("lstm_output_projected"):
-      lstm_logit = rnn_cell_impl._linear(
+      lstm_logit = core_rnn_cell._linear(
           args=lstm_feature,
           output_size=self.vocab_size,
           bias=True,
