@@ -139,7 +139,7 @@ class WorkerDB(object):
         denovo_peptide_dict[scan] = sequence
 
     print("WorkerDB: search_db() - open tensorflow session")
-    session = tf.Session()
+    session = tf.compat.v1.Session()
     model.restore_model(session)
 
     worker_io.open_input()

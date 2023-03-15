@@ -155,3 +155,14 @@ dmypy.json
 docker log.txt
 next steps from yuri.txt
 cProfile.ipynb
+
+
+## More ignores
+.vscode/launch.json
+Kaiko_denovo/src/kaiko_main_debugging.py
+Kaiko_denovo/tf2.0.0_variable_names.txt
+Kaiko_denovo_tf1.15.0
+
+
+tf2.0.0_variable_names.txt
+tf_updgrade_report.txt

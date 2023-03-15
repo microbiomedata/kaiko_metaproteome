@@ -11,7 +11,8 @@ from __future__ import print_function
 from six.moves import xrange
 
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 # ==============================================================================
@@ -20,7 +21,7 @@ import tensorflow as tf
 
 
 tf.app.flags.DEFINE_string("train_dir", # flag_name
-                           "train", # default_value
+                           "Kaiko_denovo/model/", # default_value
                            "Training directory.") # docstring
 
 tf.app.flags.DEFINE_integer("direction",
@@ -63,7 +64,7 @@ tf.app.flags.DEFINE_string("knapsack_file",
                            "Knapsack input directory.")
 
 tf.app.flags.DEFINE_boolean("multi_decode",
-                            False,
+                            True,
                             "Set to True for decoding multiple files.")
 
 tf.app.flags.DEFINE_boolean("topk",
@@ -151,14 +152,14 @@ tf.app.flags.DEFINE_boolean("decoy",
                             False,
                             "Set to True to search decoy database.")
 
+tf.app.flags.DEFINE_boolean("profile",
+                             False,
+                             "Set to True to profile the denovo model")
+
 FLAGS = tf.app.flags.FLAGS
 """
 Kaiko cProfile addition
 """
-
-tf.app.flags.DEFINE_boolean("profile",
-                             False,
-                             "Set to True to profile the denovo model")
 
 
 # ==============================================================================

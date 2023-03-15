@@ -1978,14 +1978,14 @@ def create_model(session, training_mode):
 
   # folder of training state
   ckpt = tf.train.get_checkpoint_state(deepnovo_config.FLAGS.train_dir)
-  if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path+".index"):
+  if ckpt and tf.io.gfile.exists(ckpt.model_checkpoint_path+".index"):
     print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
     model.saver.restore(session, ckpt.model_checkpoint_path)
   else:
     print("Created model with fresh parameters.")
     #~ train_writer = tf.train.SummaryWriter("train_log", session.graph)
     #~ train_writer.close()
-    session.run(tf.global_variables_initializer())
+    session.run(tf.compat.v1.global_variables_initializer())
   return model
 
 
@@ -2893,7 +2893,7 @@ def decode_beam_search(sess,
 def decode(input_file=deepnovo_config.decode_test_file):
   """TODO(nh2tran): docstring."""
 
-  with tf.Session() as sess:
+  with tf.compat.v1.Session() as sess:
 
     # DECODING MODEL
     print("DECODING MODEL")
@@ -3034,7 +3034,7 @@ def decode(input_file=deepnovo_config.decode_test_file):
 def multi_decode(input_dir=deepnovo_config.input_mgf_dir):
   """TODO(nh2tran): docstring."""
 
-  with tf.Session() as sess:
+  with tf.compat.v1.Session() as sess:
 
     # DECODING MODEL
     print("DECODING MODEL")
@@ -3580,7 +3580,7 @@ def train():
         #~ resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1000)
 
   # TRAINING on train_set
-  with tf.Session() as sess:
+  with tf.compat.v1.Session() as sess:
   #~ print("RESOURCE-sess: ",
           #~ resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1000)
 
@@ -3691,7 +3691,7 @@ def test_true_feeding():
                                spectra_file_location_test)
 
   # Testing
-  with tf.Session() as sess:
+  with tf.compat.v1.Session() as sess:
 
     print("Create model for testing")
     model = create_model(sess, training_mode=False)
@@ -3809,8 +3809,8 @@ def multi_train_for_sigopt(hyperparams,
   valid_bucket_pos_id = np.nonzero(valid_bucket_len)[0]
 
   # TRAINING on train_set
-  tf.reset_default_graph()
-  with tf.Session() as sess:
+  tf.compat.v1.reset_default_graph()
+  with tf.compat.v1.Session() as sess:
     print("Create model for training")
     model = create_model(sess, training_mode=True)
 
@@ -3931,7 +3931,7 @@ def multi_train():
   valid_bucket_pos_id = np.nonzero(valid_bucket_len)[0]
 
   # TRAINING on train_set
-  with tf.Session() as sess:
+  with tf.compat.v1.Session() as sess:
     print("Create model for training")
     model = create_model(sess, training_mode=True)
 
@@ -4328,7 +4328,7 @@ def multi_train_pickles():
   valid_bucket_pos_id = np.nonzero(valid_bucket_len)[0]
 
   # TRAINING on train_set
-  with tf.Session() as sess:
+  with tf.compat.v1.Session() as sess:
     print("Create model for training")
     model = create_model(sess, training_mode=True)
 

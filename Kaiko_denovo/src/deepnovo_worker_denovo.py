@@ -94,7 +94,7 @@ class WorkerDenovo(object):
       self.knapsack_matrix = self._build_knapsack()
 
     print("WorkerDenovo: search_denovo() - open tensorflow session")
-    session = tf.Session()
+    session = tf.compat.v1.Session()
     model.restore_model(session)
 
     worker_io.open_input()
