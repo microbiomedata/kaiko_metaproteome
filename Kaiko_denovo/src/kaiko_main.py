@@ -81,9 +81,13 @@ def main(_):
 
 
 if __name__ == "__main__":
-  if deepnovo_config.FLAGS.profile:
+  # if deepnovo_config.FLAGS.profile:
+  if False:
     print("Running profiler")
     cProfile.runctx("tf.app.run()", globals(), locals(), filename = "../Kaiko_volume/Kaiko_denovo.prof")
   else:
     print("Not running profiler")
-    tf.app.run()
+    tf.compat.v1.app.run()
+    # session = tf.compat.v1.Session()
+    # with session.as_default():
+    #   tf.compat.v1.app.run()

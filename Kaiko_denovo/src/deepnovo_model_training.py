@@ -188,11 +188,11 @@ def decode_spectrum(encoded_spectrum,
       dense1_W = variable_scope.get_variable(
           name="dense1_W_0",
           shape=[dense1_input_size, dense1_output_size],
-          initializer=tf.uniform_unit_scaling_initializer(1.43))
+          initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
       dense1_B = variable_scope.get_variable(
           name="dense1_B_0",
           shape=[dense1_output_size],
-          initializer=tf.constant_initializer(0.1))
+          initializer=tf.compat.v1.constant_initializer(0.1))
 
       dense_linear_W = variable_scope.get_variable(
           name="dense_linear_W",
@@ -200,40 +200,40 @@ def decode_spectrum(encoded_spectrum,
       dense_linear_B = variable_scope.get_variable(
           name="dense_linear_B",
           shape=[1],
-          initializer=tf.constant_initializer(0.1))
+          initializer=tf.compat.v1.constant_initializer(0.1))
 
     else: # joint-weight
 
       # conv1: [128, 8, 20, 26] >> [128, 8, 20, 64] with kernel [1, 3, 26, 64]
-      conv1_weights = tf.get_variable(
+      conv1_weights = tf.compat.v1.get_variable(
           name="conv1_weights",
           shape=[1, 3, deepnovo_config.vocab_size, 64],
-          initializer=tf.uniform_unit_scaling_initializer(1.43))
-      conv1_biases = tf.get_variable(name="conv1_biases",
+          initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
+      conv1_biases = tf.compat.v1.get_variable(name="conv1_biases",
                                      shape=[64],
-                                     initializer=tf.constant_initializer(0.1))
+                                     initializer=tf.compat.v1.constant_initializer(0.1))
 
       # conv2: [128, 8, 20, 64] >> [128, 8, 20, 64] with kernel [1, 2, 64, 64]
-      conv2_weights = tf.get_variable(
+      conv2_weights = tf.compat.v1.get_variable(
           name="conv2_weights",
           shape=[1, 2, 64, 64],
-          initializer=tf.uniform_unit_scaling_initializer(1.43))
-      conv2_biases = tf.get_variable(name="conv2_biases",
+          initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
+      conv2_biases = tf.compat.v1.get_variable(name="conv2_biases",
                                      shape=[64],
-                                     initializer=tf.constant_initializer(0.1))
+                                     initializer=tf.compat.v1.constant_initializer(0.1))
 
       # max_pool: [128, 8, 20, 64] >> [128, 8, 10, 64]
 
       # dense1: # 4D >> [128, 512]
       dense1_input_size = deepnovo_config.num_ion * (deepnovo_config.WINDOW_SIZE // 2) * 64 # deepnovo_config.vocab_size
       dense1_output_size = deepnovo_config.num_units #JOON
-      dense1_weights = tf.get_variable(
+      dense1_weights = tf.compat.v1.get_variable(
           "dense1_weights",
           shape=[dense1_input_size, dense1_output_size],
-          initializer=tf.uniform_unit_scaling_initializer(1.43))
-      dense1_biases = tf.get_variable("dense1_biases",
+          initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
+      dense1_biases = tf.compat.v1.get_variable("dense1_biases",
                                       shape=[dense1_output_size],
-                                      initializer=tf.constant_initializer(0.1))
+                                      initializer=tf.compat.v1.constant_initializer(0.1))
 
       # for testing
       dense1_W_penalty = tf.multiply(tf.nn.l2_loss(dense1_weights),
@@ -245,11 +245,11 @@ def decode_spectrum(encoded_spectrum,
         name="dense_concat_W",
         # shape=[deepnovo_config.num_units+deepnovo_config.embedding_size, deepnovo_config.num_units],#JOON?
         shape=[deepnovo_config.num_units*2, deepnovo_config.num_units],#JOON?
-        initializer=tf.uniform_unit_scaling_initializer(1.43))
+        initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
     dense_concat_B = variable_scope.get_variable(
         name="dense_concat_B",
         shape=[deepnovo_config.num_units],#JOON
-        initializer=tf.constant_initializer(0.1))
+        initializer=tf.compat.v1.constant_initializer(0.1))
 
     # DECODING - SPECTRUM as Input 0
     with variable_scope.variable_scope("LSTM_cell"):
@@ -268,7 +268,7 @@ def decode_spectrum(encoded_spectrum,
       lstm_input_projected_B = variable_scope.get_variable(
           name="lstm_input_projected_B",
           shape=[deepnovo_config.num_units],
-          initializer=tf.constant_initializer(0.1))
+          initializer=tf.compat.v1.constant_initializer(0.1))
 
     # DECODING LOOP
     # nobi
@@ -294,7 +294,7 @@ def decode_spectrum(encoded_spectrum,
         layer_dense1_input = candidate_intensity_reshape
         layer_dense1 = tf.nn.relu(tf.matmul(layer_dense1_input, dense1_W)
                                   + dense1_B) # [128*27, 1024]
-        layer_dense1_drop = tf.nn.dropout(layer_dense1, keep_dense)
+        layer_dense1_drop = tf.nn.dropout(layer_dense1, 1 - (keep_dense))
         layer_dense1_output = (tf.matmul(layer_dense1_drop, dense_linear_W)
                                + dense_linear_B) # [128*27,1]
 
@@ -306,26 +306,26 @@ def decode_spectrum(encoded_spectrum,
 
         # image_batch: [128, 26, 8, 20] >> [128, 8, 20, 26]
         # This is a bug, should be fixed at the input processing later.
-        image_batch = tf.transpose(candidate_intensity, perm=[0, 2, 3, 1]) # [128,8,20,26]
+        image_batch = tf.transpose(a=candidate_intensity, perm=[0, 2, 3, 1]) # [128,8,20,26]
 
         # conv1: [128, 8, 20, 26] >> [128, 8, 20, 64] with kernel [1, 3, 26, 64]
-        conv1 = tf.nn.relu(tf.nn.conv2d(image_batch,
-                                        conv1_weights,
+        conv1 = tf.nn.relu(tf.nn.conv2d(input=image_batch,
+                                        filters=conv1_weights,
                                         strides=[1, 1, 1, 1],
                                         padding='SAME')
                            + conv1_biases)
 
         # conv2: [128, 8, 20, 64] >> [128, 8, 20, 64] with kernel [1, 2, 64, 64]
-        conv2 = tf.nn.relu(tf.nn.conv2d(conv1,
-                                        conv2_weights,
+        conv2 = tf.nn.relu(tf.nn.conv2d(input=conv1,
+                                        filters=conv2_weights,
                                         strides=[1, 1, 1, 1],
                                         padding='SAME')
                            + conv2_biases)
-        conv2 = tf.nn.max_pool(conv2,
+        conv2 = tf.nn.max_pool2d(input=conv2,
                                ksize=[1, 1, 3, 1],
                                strides=[1, 1, 2, 1],
                                padding='SAME') # [128, 8, 10, 64]
-        conv2 = tf.nn.dropout(conv2, keep_conv)
+        conv2 = tf.nn.dropout(conv2, 1 - (keep_conv))
 
         # dense1: 4D >> [128, 512]
         dense1_input = tf.reshape(conv2, [-1, dense1_input_size]) # 2D flatten
@@ -336,7 +336,7 @@ def decode_spectrum(encoded_spectrum,
         #~ dense2 = tf.nn.relu(tf.matmul(dense1, dense2_weights) + dense2_biases) # [128, 512]
 
         #~ dropout1 = tf.nn.dropout(dense2, keep_dense, name="dropout1")
-        dropout1 = tf.nn.dropout(dense1, keep_dense, name="dropout1")
+        dropout1 = tf.nn.dropout(dense1, 1 - (keep_dense), name="dropout1")
 
         # logit_linear: [128, 512] >> [128, 27]
         #~ intensity_output = tf.add(tf.matmul(dropout1, linear_weights),
@@ -387,7 +387,7 @@ def decode_spectrum(encoded_spectrum,
         concat = tf.concat(axis=1, values=[intensity_output, lstm_output])
         concat_dense = tf.nn.relu(tf.matmul(concat, dense_concat_W)
                                   + dense_concat_B)
-        concat_drop = tf.nn.dropout(concat_dense, keep_dense)
+        concat_drop = tf.nn.dropout(concat_dense, 1 - (keep_dense))
 
         with variable_scope.variable_scope("output_logit"):
           output_logit = rnn_cell_impl._linear(args=concat_drop, # TODO(nh2tran): _linear
@@ -465,21 +465,21 @@ def encode_spectrum(encoder_inputs,
     conv1_W = variable_scope.get_variable(
         name="conv1_W",
         shape=[1, 4, 1, 4],
-        initializer=tf.uniform_unit_scaling_initializer(1.43))
+        initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
     conv1_B = variable_scope.get_variable(
         name="conv1_B",
         shape=[4],
-        initializer=tf.constant_initializer(0.1))
+        initializer=tf.compat.v1.constant_initializer(0.1))
 
     # conv2
     conv2_W = variable_scope.get_variable(
         name="conv2_W",
         shape=[1, 4, 4, 4],
-        initializer=tf.uniform_unit_scaling_initializer(1.43))
+        initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
     conv2_B = variable_scope.get_variable(
         name="conv2_B",
         shape=[4],
-        initializer=tf.constant_initializer(0.1))
+        initializer=tf.compat.v1.constant_initializer(0.1))
 
     # dense1
     dense1_input_size = 1 * (deepnovo_config.MZ_SIZE // (4)) * 4
@@ -487,34 +487,34 @@ def encode_spectrum(encoder_inputs,
     dense1_W = variable_scope.get_variable(
         name="dense1_W",
         shape=[dense1_input_size, dense1_output_size],
-        initializer=tf.uniform_unit_scaling_initializer(1.43))
+        initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
     dense1_B = variable_scope.get_variable(
         name="dense1_B",
         shape=[dense1_output_size],
-        initializer=tf.constant_initializer(0.1))
+        initializer=tf.compat.v1.constant_initializer(0.1))
 
     # layers
-    conv1 = tf.nn.relu(tf.nn.conv2d(layer0,
-                                    conv1_W,
+    conv1 = tf.nn.relu(tf.nn.conv2d(input=layer0,
+                                    filters=conv1_W,
                                     strides=[1, 1, 1, 1],
                                     padding='SAME')
                        + conv1_B)
 
-    conv2 = tf.nn.relu(tf.nn.conv2d(conv1,
-                                    conv2_W,
+    conv2 = tf.nn.relu(tf.nn.conv2d(input=conv1,
+                                    filters=conv2_W,
                                     strides=[1, 1, 1, 1],
                                     padding='SAME')
                        + conv2_B)
-    conv2 = tf.nn.max_pool(conv2,
+    conv2 = tf.nn.max_pool2d(input=conv2,
                            ksize=[1, 1, 6, 1],
                            strides=[1, 1, 4, 1],
                            padding='SAME')
-    conv2 = tf.nn.dropout(conv2, keep_conv)
+    conv2 = tf.nn.dropout(conv2, 1 - (keep_conv))
 
     
     dense1 = tf.reshape(conv2, [-1, dense1_input_size])
     dense1 = tf.nn.relu(tf.matmul(dense1, dense1_W) + dense1_B)
-    dense1 = tf.nn.dropout(dense1, keep_dense)
+    dense1 = tf.nn.dropout(dense1, 1 - (keep_dense))
 
     print('dense1 in encode_spectrum:', dense1)
     

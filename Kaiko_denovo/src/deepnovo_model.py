@@ -43,7 +43,7 @@ from tensorflow.python.ops import rnn_cell
 from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.ops import variable_scope
 
-from tensorflow.contrib.rnn.python.ops import core_rnn_cell
+# from tensorflow.contrib.rnn.python.ops import core_rnn_cell
 
 import deepnovo_config
 import deepnovo_model_training
@@ -66,13 +66,13 @@ class TrainingModel(object):
     self.global_step = tf.Variable(0, trainable=False)
 
     # Dropout probabilities
-    self.keep_conv_holder = tf.placeholder(dtype=self.ftype, name="keep_conv")
-    self.keep_dense_holder = tf.placeholder(dtype=self.ftype, name="keep_dense")
+    self.keep_conv_holder = tf.compat.v1.placeholder(dtype=self.ftype, name="keep_conv")
+    self.keep_dense_holder = tf.compat.v1.placeholder(dtype=self.ftype, name="keep_dense")
 
     # INPUT PLACEHOLDERS
 
     # spectrum
-    self.encoder_inputs = [tf.placeholder(dtype=self.ftype,
+    self.encoder_inputs = [tf.compat.v1.placeholder(dtype=self.ftype,
                                           shape=[None, deepnovo_config.MZ_SIZE],
                                           name="encoder_inputs")]
     print('encoder_inputs:', self.encoder_inputs)
@@ -81,11 +81,11 @@ class TrainingModel(object):
     self.intensity_inputs_forward = []
     self.intensity_inputs_backward = []
     for x in xrange(deepnovo_config._buckets[-1]): # TODO(nh2tran): _buckets
-      self.intensity_inputs_forward.append(tf.placeholder(
+      self.intensity_inputs_forward.append(tf.compat.v1.placeholder(
           dtype=self.ftype,
           shape=[None, deepnovo_config.vocab_size, deepnovo_config.num_ion, deepnovo_config.WINDOW_SIZE], # TODO(nh2tran): line-too-long, config
           name="intensity_inputs_forward_{0}".format(x)))
-      self.intensity_inputs_backward.append(tf.placeholder(
+      self.intensity_inputs_backward.append(tf.compat.v1.placeholder(
           dtype=self.ftype,
           shape=[None, deepnovo_config.vocab_size, deepnovo_config.num_ion, deepnovo_config.WINDOW_SIZE], # TODO(nh2tran): line-too-long, config
           name="intensity_inputs_backward_{0}".format(x)))
@@ -95,15 +95,15 @@ class TrainingModel(object):
     self.decoder_inputs_backward = []
     self.target_weights = []
     for x in xrange(deepnovo_config._buckets[-1] + 1): # TODO(nh2tran): _buckets
-      self.decoder_inputs_forward.append(tf.placeholder(
+      self.decoder_inputs_forward.append(tf.compat.v1.placeholder(
           dtype=tf.int32,
           shape=[None],
           name="decoder_inputs_forward_{0}".format(x)))
-      self.decoder_inputs_backward.append(tf.placeholder(
+      self.decoder_inputs_backward.append(tf.compat.v1.placeholder(
           dtype=tf.int32,
           shape=[None],
           name="decoder_inputs_backward_{0}".format(x)))
-      self.target_weights.append(tf.placeholder(
+      self.target_weights.append(tf.compat.v1.placeholder(
           dtype=self.ftype,
           shape=[None],
           name="target_weights_{0}".format(x)))
@@ -130,12 +130,12 @@ class TrainingModel(object):
 
     # Gradients and SGD update operation for training the model.
     if training_mode:
-      params = tf.trainable_variables()
+      params = tf.compat.v1.trainable_variables()
       self.gradient_norms = []
       self.updates = []
-      opt = tf.train.AdamOptimizer(learning_rate=deepnovo_config.learning_rate)
+      opt = tf.compat.v1.train.AdamOptimizer(learning_rate=deepnovo_config.learning_rate)
       for b in xrange(len(deepnovo_config._buckets)): # TODO(nh2tran): _buckets
-        gradients = tf.gradients(self.losses[b], params)
+        gradients = tf.gradients(ys=self.losses[b], xs=params)
         clipped_gradients, norm = tf.clip_by_global_norm(
             gradients,
             deepnovo_config.max_gradient_norm)
@@ -153,7 +153,7 @@ class TrainingModel(object):
       #~ self.dense1_W_penalty_summary = tf.scalar_summary("dense1_W_penalty_summary", dense1_W_penalty)
 
     # Saver
-    self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
+    self.saver = tf.compat.v1.train.Saver(tf.compat.v1.global_variables(), max_to_keep=1)
 
   def step(self,
            session,
@@ -316,7 +316,7 @@ class ModelNetwork(object):
 
       scope = "embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder" # TODO(nh2tran): change to "cnn_ion/lstm"
       scope = scope + "_" + direction
-      with tf.variable_scope(scope):
+      with tf.compat.v1.variable_scope(scope):
 
         # cnn_ion model
         cnn_ion_feature, cnn_ion_logit = self._build_cnn_ion(
@@ -331,28 +331,33 @@ class ModelNetwork(object):
             direction)
 
         # combine cnn_ion and lstm features
-        feature_weight = tf.get_variable(
+        feature_weight = tf.compat.v1.get_variable(
             name="dense_concat_W", # TODO(nh2tran): change to "feature_weight"
             shape=[self.num_units*2, self.num_units],
-            initializer=tf.uniform_unit_scaling_initializer(1.43))
-        feature_bias = tf.get_variable(
+            initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
+        feature_bias = tf.compat.v1.get_variable(
             name="dense_concat_B", # TODO(nh2tran): change to "feature_bias"
             shape=[self.num_units],
-            initializer=tf.constant_initializer(0.1))
+            initializer=tf.compat.v1.constant_initializer(0.1))
         feature_input = tf.concat(values=[cnn_ion_feature, lstm_feature],
                                   axis=1)
         feature = tf.nn.relu(tf.matmul(feature_input, feature_weight)
                              + feature_bias)
-        feature = tf.nn.dropout(feature, self.dropout_keep["dense"])
+        feature = tf.nn.dropout(feature, 1 - (self.dropout_keep["dense"]))
   
         # linear transform to logit [128, 26]
         # TODO(nh2tran): replace _linear and remove scope
-        with tf.variable_scope("output_logit"):
-          feature_logit = core_rnn_cell._linear(args=feature,
-                                                output_size=self.vocab_size,
-                                                bias=True,
+        with tf.compat.v1.variable_scope("output_logit"):
+          feature_logit = tf.compat.v1.layers.dense(inputs=feature,
+                                                units=self.vocab_size,
+                                                use_bias=True,
                                                 bias_initializer=None,#0.1,
                                                 kernel_initializer=None)
+          # feature_logit = rnn_cell_impl._linear(args=feature,
+          #                                       output_size=self.vocab_size,
+          #                                       bias=True,
+          #                                       bias_initializer=None,#0.1,
+          #                                       kernel_initializer=None)
 
         # both ion-lstm models are used together by default
         # but each can be used separately for investigation
@@ -366,7 +371,7 @@ class ModelNetwork(object):
           print("Error: wrong ion-lstm model!")
           sys.exit()
 
-        logprob = tf.log(tf.nn.softmax(logit))
+        logprob = tf.math.log(tf.nn.softmax(logit))
 
         output["logit"] = logit
         output["logprob"] = logprob
@@ -393,69 +398,75 @@ class ModelNetwork(object):
     # reshape [128, 26, 8, 10] to [128, 8, 10, 26] to do convolution along the
     #   window_size dimension.
     # TODO(nh2tran): this can be fixed at the input process.
-    input_intensity = tf.transpose(input_intensity, perm=[0, 2, 3, 1])
+    input_intensity = tf.transpose(a=input_intensity, perm=[0, 2, 3, 1])
 
     # conv1: [128, 8, 10, 26] >> [128, 8, 10, 64] with kernel [1, 3, 26, 64]
-    conv1_weight = tf.get_variable(
+    conv1_weight = tf.compat.v1.get_variable(
         name="conv1_weights", # TODO(nh2tran): to change to "conv1_weight"
         shape=[1, 3, self.vocab_size, 64],
-        initializer=tf.uniform_unit_scaling_initializer(1.43))
-    conv1_bias = tf.get_variable(
+        initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
+    conv1_bias = tf.compat.v1.get_variable(
         name="conv1_biases", # TODO(nh2tran): to change to "conv1_bias"
         shape=[64],
-        initializer=tf.constant_initializer(0.1))
-    conv1 = tf.nn.relu(tf.nn.conv2d(input_intensity,
-                                    conv1_weight,
+        initializer=tf.compat.v1.constant_initializer(0.1))
+    conv1 = tf.nn.relu(tf.nn.conv2d(input=input_intensity,
+                                    filters=conv1_weight,
                                     strides=[1, 1, 1, 1],
                                     padding='SAME')
                        + conv1_bias)
 
     # conv2: [128, 8, 10, 64] >> [128, 8, 10, 64] with kernel [1, 2, 64, 64]
-    conv2_weight = tf.get_variable(
+    conv2_weight = tf.compat.v1.get_variable(
         name="conv2_weights", # TODO(nh2tran): change to "conv2_weight"
         shape=[1, 2, 64, 64],
-        initializer=tf.uniform_unit_scaling_initializer(1.43))
-    conv2_bias = tf.get_variable(
+        initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
+    conv2_bias = tf.compat.v1.get_variable(
         name="conv2_biases", # TODO(nh2tran): change to "conv2_bias"
         shape=[64],
-        initializer=tf.constant_initializer(0.1))
-    conv2 = tf.nn.relu(tf.nn.conv2d(conv1,
-                                    conv2_weight,
+        initializer=tf.compat.v1.constant_initializer(0.1))
+    conv2 = tf.nn.relu(tf.nn.conv2d(input=conv1,
+                                    filters=conv2_weight,
                                     strides=[1, 1, 1, 1],
                                     padding='SAME')
                        + conv2_bias)
     # max pooling [1, 1, 3, 1] with stride [1, 1, 2, 1]
-    conv2 = tf.nn.max_pool(conv2,
+    conv2 = tf.nn.max_pool2d(input=conv2,
                            ksize=[1, 1, 3, 1],
                            strides=[1, 1, 2, 1],
                            padding='SAME') # [128,8,10,64]
-    conv2 = tf.nn.dropout(conv2, self.dropout_keep["conv"])
+    conv2 = tf.nn.dropout(conv2, 1 - (self.dropout_keep["conv"]))
 
     # dense1: 4D >> [128, 512]
     dense1_input_size = self.num_ion * (self.WINDOW_SIZE // 2) * 64
     dense1_output_size = self.num_units
-    dense1_weight = tf.get_variable(
+    dense1_weight = tf.compat.v1.get_variable(
         name="dense1_weights", # TODO(nh2tran): change to "dense1_weight"
         shape=[dense1_input_size, dense1_output_size],
-        initializer=tf.uniform_unit_scaling_initializer(1.43))
-    dense1_bias = tf.get_variable(
+        initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
+    dense1_bias = tf.compat.v1.get_variable(
         name="dense1_biases", # TODO(nh2tran): change to "dense1_bias"
         shape=[dense1_output_size],
-        initializer=tf.constant_initializer(0.1))
+        initializer=tf.compat.v1.constant_initializer(0.1))
     dense1_input = tf.reshape(conv2, [-1, dense1_input_size])
     dense1 = tf.nn.relu(tf.matmul(dense1_input, dense1_weight) + dense1_bias)
-    dense1 = tf.nn.dropout(dense1, self.dropout_keep["dense"], name="dropout1") # TODO(nh2tran): remove name
+    dense1 = tf.nn.dropout(dense1, 1 - (self.dropout_keep["dense"]), name="dropout1") # TODO(nh2tran): remove name
 
     cnn_ion_feature = dense1
 
     # linear transform to logit [128, 26], in case only cnn_ion model is used
     # TODO(nh2tran): replace _linear and remove scope
-    with tf.variable_scope("intensity_output_projected"):
-      cnn_ion_logit = core_rnn_cell._linear(args=cnn_ion_feature,
-                                            output_size=self.vocab_size,
-                                            bias=True,
+    with tf.compat.v1.variable_scope("intensity_output_projected"):
+      
+      cnn_ion_logit = tf.compat.v1.layers.dense(inputs=cnn_ion_feature,
+                                            units=self.vocab_size,
+                                            use_bias=True,
                                             bias_initializer=None,#0.1,
                                             kernel_initializer=None)
+      # cnn_ion_logit = rnn_cell_impl._linear(args=cnn_ion_feature,
+      #                                       output_size=self.vocab_size,
+      #                                       bias=True,
+      #                                       bias_initializer=None,#0.1,
+      #                                       kernel_initializer=None)
     
 
     return cnn_ion_feature, cnn_ion_logit
@@ -475,61 +486,61 @@ class ModelNetwork(object):
     print("ModelNetwork: _build_cnn_spectrum()")
 
     scope = "embedding_rnn_seq2seq" # TODO(nh2tran): change to "cnn_spectrum"
-    with tf.variable_scope(scope):
+    with tf.compat.v1.variable_scope(scope):
   
       # reshape the 2D input tensor to common 4D
       layer0 = tf.reshape(input_spectrum, [-1, 1, self.MZ_SIZE, 1])
   
       # conv1: filter [1, 4, 1, 4] with stride [1, 1, 1, 1]
-      conv1_weight = tf.get_variable(
+      conv1_weight = tf.compat.v1.get_variable(
           name="conv1_W", # TODO(nh2tran): change to "conv1_weight"
           shape=[1, 4, 1, 4],
-          initializer=tf.uniform_unit_scaling_initializer(1.43))
-      conv1_bias = tf.get_variable(
+          initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
+      conv1_bias = tf.compat.v1.get_variable(
           name="conv1_B", # TODO(nh2tran): change to "conv1_bias"
           shape=[4],
-          initializer=tf.constant_initializer(0.1))
-      conv1 = tf.nn.relu(tf.nn.conv2d(layer0,
-                                      conv1_weight,
+          initializer=tf.compat.v1.constant_initializer(0.1))
+      conv1 = tf.nn.relu(tf.nn.conv2d(input=layer0,
+                                      filters=conv1_weight,
                                       strides=[1, 1, 1, 1],
                                       padding='SAME')
                          + conv1_bias)
 
       # conv2: filter [1, 4, 4, 4] with stride [1, 1, 1, 1]
-      conv2_weight = tf.get_variable(
+      conv2_weight = tf.compat.v1.get_variable(
           name="conv2_W", # TODO(nh2tran): change to "conv2_weight"
           shape=[1, 4, 4, 4],
-          initializer=tf.uniform_unit_scaling_initializer(1.43))
-      conv2_bias = tf.get_variable(
+          initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
+      conv2_bias = tf.compat.v1.get_variable(
           name="conv2_B", # TODO(nh2tran): change to "conv2_bias"
           shape=[4],
-          initializer=tf.constant_initializer(0.1))
-      conv2 = tf.nn.relu(tf.nn.conv2d(conv1,
-                                      conv2_weight,
+          initializer=tf.compat.v1.constant_initializer(0.1))
+      conv2 = tf.nn.relu(tf.nn.conv2d(input=conv1,
+                                      filters=conv2_weight,
                                       strides=[1, 1, 1, 1],
                                       padding='SAME')
                          + conv2_bias)
       # max pooling [1, 1, 6, 1] with stride [1, 1, 4, 1]
-      conv2 = tf.nn.max_pool(conv2,
+      conv2 = tf.nn.max_pool2d(input=conv2,
                              ksize=[1, 1, 6, 1],
                              strides=[1, 1, 4, 1],
                              padding='SAME')
-      conv2 = tf.nn.dropout(conv2, self.dropout_keep["conv"])
+      conv2 = tf.nn.dropout(conv2, 1 - (self.dropout_keep["conv"]))
 
       # dense1
       dense1_input_size = 1 * (self.MZ_SIZE // (4)) * 4
       dense1_output_size = self.num_units
-      dense1_weight = tf.get_variable(
+      dense1_weight = tf.compat.v1.get_variable(
           name="dense1_W", # TODO(nh2tran): change to "dense1_weight"
           shape=[dense1_input_size, dense1_output_size],
-          initializer=tf.uniform_unit_scaling_initializer(1.43))
-      dense1_bias = tf.get_variable(
+          initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.43, distribution="uniform"))
+      dense1_bias = tf.compat.v1.get_variable(
           name="dense1_B", # TODO(nh2tran): change to "dense1_bias"
           shape=[dense1_output_size],
-          initializer=tf.constant_initializer(0.1))
+          initializer=tf.compat.v1.constant_initializer(0.1))
       dense1 = tf.reshape(conv2, [-1, dense1_input_size])
       dense1 = tf.nn.relu(tf.matmul(dense1, dense1_weight) + dense1_bias)
-      dense1 = tf.nn.dropout(dense1, self.dropout_keep["dense"])
+      dense1 = tf.nn.dropout(dense1, 1 - (self.dropout_keep["dense"]))
 
       cnn_spectrum_feature = dense1
 
@@ -550,10 +561,10 @@ class ModelNetwork(object):
     print("ModelNetwork: _build_embedding_AAid()")
 
     scope = "embedding_rnn_seq2seq/embedding_rnn_decoder" # TODO(nh2tran): to change to "embedding_AAid"
-    with tf.variable_scope(scope):
+    with tf.compat.v1.variable_scope(scope):
 
       with ops.device("/cpu:0"):
-        embedding = tf.get_variable(
+        embedding = tf.compat.v1.get_variable(
             name="embedding",
             shape=[self.vocab_size, self.embedding_size])
 
@@ -585,7 +596,7 @@ class ModelNetwork(object):
     single_cell = rnn_cell.BasicLSTMCell(num_units=self.num_units,
                                          state_is_tuple=True)
     if self.num_layers > 1:
-      cell = tf.nn.rnn_cell.MultiRNNCell([single_cell] * self.num_layers)
+      cell = tf.compat.v1.nn.rnn_cell.MultiRNNCell([single_cell] * self.num_layers)
     else:
       cell = single_cell
     cell = rnn_cell.DropoutWrapper(cell,
@@ -593,15 +604,15 @@ class ModelNetwork(object):
                                    output_keep_prob=self.dropout_keep["dense"])
 
     # project lstm input from embedding_size to num_units
-    with tf.variable_scope("LSTM_input_projected"): # TODO(nh2tran): remove
+    with tf.compat.v1.variable_scope("LSTM_input_projected"): # TODO(nh2tran): remove
 
-      project_weight = tf.get_variable(
+      project_weight = tf.compat.v1.get_variable(
           name="lstm_input_projected_W", # TODO(nh2tran): change to "project_weight"
           shape=[self.embedding_size, self.num_units])
-      project_bias = tf.get_variable(
+      project_bias = tf.compat.v1.get_variable(
           name="lstm_input_projected_B", # TODO(nh2tran): change to "project_bias"
           shape=[self.num_units],
-          initializer=tf.constant_initializer(0.1))
+          initializer=tf.compat.v1.constant_initializer(0.1))
       # nobi
       AA_1 = embedding_AAid[0]
       AA_2 = embedding_AAid[1]
@@ -609,7 +620,7 @@ class ModelNetwork(object):
       AA_2_project = (tf.matmul(AA_2, project_weight) + project_bias)
 
     # lstm cell's one-iteration
-    with tf.variable_scope("LSTM_cell"): # TODO(nh2tran): remove
+    with tf.compat.v1.variable_scope("LSTM_cell"): # TODO(nh2tran): remove
 
       # cnn_spectrum as input 0 to initialize the lstm cell
       # lstm_state0 is returned for 2 purposes:
@@ -629,13 +640,19 @@ class ModelNetwork(object):
 
     # linear transform to logit [128, 26], in case only lstm model is used
     # TODO(nh2tran): replace _linear and remove scope
-    with tf.variable_scope("lstm_output_projected"):
-      lstm_logit = core_rnn_cell._linear(
-          args=lstm_feature,
-          output_size=self.vocab_size,
-          bias=True,
+    with tf.compat.v1.variable_scope("lstm_output_projected"):
+      lstm_logit = tf.compat.v1.layers.dense(
+          inputs=lstm_feature,
+          units=self.vocab_size,
+          use_bias=True,
           bias_initializer=None,#0.1,
           kernel_initializer=None)
+      # lstm_logit = rnn_cell_impl._linear(
+      #     args=lstm_feature,
+      #     output_size=self.vocab_size,
+      #     bias=True,
+      #     bias_initializer=None,#0.1,
+      #     kernel_initializer=None)
 
     return lstm_feature, lstm_logit, lstm_state0, lstm_state
 
@@ -667,30 +684,30 @@ class ModelInference(object):
     self.input_dict = {}
     # input spectrum is a 2D tensor of shape [batch_size, MZ_SIZE]
     #   for example: [128, 30k]
-    self.input_dict["spectrum"] = tf.placeholder(dtype=self.ftype,
+    self.input_dict["spectrum"] = tf.compat.v1.placeholder(dtype=self.ftype,
                                                  shape=[None, self.MZ_SIZE],
                                                  name="input_spectrum")
     # input intensity profile: [batch_size, vocab_size, num_ion, WINDOW_SIZE]
     #   for example; [128, 26, 8, 10]
-    self.input_dict["intensity"] = tf.placeholder(
+    self.input_dict["intensity"] = tf.compat.v1.placeholder(
         dtype=self.ftype,
         shape=[None, self.vocab_size, self.num_ion, self.WINDOW_SIZE],
         name="input_intensity")
     # input lstm state is a tuple of 2 tensors [batch_size, num_units]
     #   for example: [128, 512]
-    self.input_dict["lstm_state"] = (tf.placeholder(dtype=self.ftype,
+    self.input_dict["lstm_state"] = (tf.compat.v1.placeholder(dtype=self.ftype,
                                                    shape=[None, self.num_units],
                                                    name="input_c_state"), # to change to "input_lstm_state_c"
-                                    tf.placeholder(dtype=self.ftype,
+                                    tf.compat.v1.placeholder(dtype=self.ftype,
                                                    shape=[None, self.num_units],
                                                    name="input_h_state")) # to change to "input_lstm_state_h"
     # input last 2 amino acids if using lstm for short 3-mers
     #   list of 2 tensors [batch_size]
     #   "AAid" stands for amino acid id
-    self.input_dict["AAid"] = [tf.placeholder(dtype=tf.int32,
+    self.input_dict["AAid"] = [tf.compat.v1.placeholder(dtype=tf.int32,
                                               shape=[None],
                                               name="input_AA_id_1"), # to change to "input_AAid_1"
-                               tf.placeholder(dtype=tf.int32,
+                               tf.compat.v1.placeholder(dtype=tf.int32,
                                               shape=[None],
                                               name="input_AA_id_2")] # to change to "input_AAid_2"
 
@@ -732,10 +749,66 @@ class ModelInference(object):
     print("".join(["="] * 80)) # section-separating line
     print("ModelInference: restore_model()")
 
-    saver = tf.train.Saver(tf.global_variables())
+    import pandas as pd
+
+    tf2_debugging = tf.compat.v1.global_variables()
+    xx = pd.DataFrame([var.name for var in tf2_debugging])
+    xx.to_csv("tf2.0.0_variable_names.txt", sep = "\t", index=False)
+
+    assigment_map = {'embedding_rnn_seq2seq/conv1_W' : 'embedding_rnn_seq2seq/conv1_W',
+     'embedding_rnn_seq2seq/conv1_B' : 'embedding_rnn_seq2seq/conv1_B',
+     'embedding_rnn_seq2seq/conv2_W' : 'embedding_rnn_seq2seq/conv2_W',
+     'embedding_rnn_seq2seq/conv2_B' : 'embedding_rnn_seq2seq/conv2_B',
+     'embedding_rnn_seq2seq/dense1_W' : 'embedding_rnn_seq2seq/dense1_W',
+     'embedding_rnn_seq2seq/dense1_B' : 'embedding_rnn_seq2seq/dense1_B',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/embedding' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/embedding',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/conv1_weights' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/conv1_weights',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/conv1_biases' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/conv1_biases',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/conv2_weights' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/conv2_weights',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/conv2_biases' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/conv2_biases',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/dense1_weights' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/dense1_weights',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/dense1_biases' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/dense1_biases',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/intensity_output_projected/kernel' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/intensity_output_projected/dense/kernel',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/intensity_output_projected/bias' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/intensity_output_projected/dense/bias',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/LSTM_input_projected/lstm_input_projected_W' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/LSTM_input_projected/lstm_input_projected_W',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/LSTM_input_projected/lstm_input_projected_B' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/LSTM_input_projected/lstm_input_projected_B',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/LSTM_cell/basic_lstm_cell/kernel' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/LSTM_cell/basic_lstm_cell/kernel',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/LSTM_cell/basic_lstm_cell/bias' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/LSTM_cell/basic_lstm_cell/bias',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/lstm_output_projected/kernel' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/lstm_output_projected/dense/kernel',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/lstm_output_projected/bias' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/lstm_output_projected/dense/bias',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/dense_concat_W' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/dense_concat_W',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/dense_concat_B' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/dense_concat_B',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/output_logit/kernel' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/output_logit/dense/kernel',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/output_logit/bias' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_forward/output_logit/dense/bias',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/conv1_weights' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/conv1_weights',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/conv1_biases' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/conv1_biases',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/conv2_weights' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/conv2_weights',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/conv2_biases' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/conv2_biases',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/dense1_weights' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/dense1_weights',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/dense1_biases' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/dense1_biases',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/intensity_output_projected/kernel' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/intensity_output_projected/dense/kernel',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/intensity_output_projected/bias' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/intensity_output_projected/dense/bias',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/LSTM_input_projected/lstm_input_projected_W' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/LSTM_input_projected/lstm_input_projected_W',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/LSTM_input_projected/lstm_input_projected_B' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/LSTM_input_projected/lstm_input_projected_B',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/LSTM_cell/basic_lstm_cell/kernel' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/LSTM_cell/basic_lstm_cell/kernel',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/LSTM_cell/basic_lstm_cell/bias' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/LSTM_cell/basic_lstm_cell/bias',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/lstm_output_projected/kernel': 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/lstm_output_projected/dense/kernel',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/lstm_output_projected/bias': 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/lstm_output_projected/dense/bias',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/dense_concat_W' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/dense_concat_W',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/dense_concat_B' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/dense_concat_B',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/output_logit/kernel' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/output_logit/dense/kernel',
+     'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/output_logit/bias' : 'embedding_rnn_seq2seq/embedding_rnn_decoder/rnn_decoder_backward/output_logit/dense/bias'
+     }
+    
+    for i, variable in enumerate(assigment_map.keys()):
+      assigment_map[variable] = tf.compat.v1.trainable_variables()[i]
+    
     ckpt = tf.train.get_checkpoint_state(self.train_dir)
+    saver = tf.compat.v1.train.Saver(assigment_map)
+
+    # tf.train.Checkpoint.save("testing_model_save/here")
     print(ckpt.model_checkpoint_path)
-    if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path + ".index"):
+    if ckpt and tf.io.gfile.exists(ckpt.model_checkpoint_path + ".index"):
       print("restore model from {0:s}".format(ckpt.model_checkpoint_path))
       saver.restore(session, ckpt.model_checkpoint_path)
     else:
