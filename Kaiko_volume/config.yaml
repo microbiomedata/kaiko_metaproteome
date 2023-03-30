@@ -1,7 +1,7 @@
 denovo:
   multi_decode: true
-  mgf_dir: Kaiko_volume/Kaiko_input_files/mgf_small
+  mgf_dir: Kaiko_volume/Kaiko_input_files/mgf_large
 diamond tally:
-  diamond_folder: 'Kaiko_volume/Kaiko_stationary_files/diamond'
+  diamond_folder: Kaiko_volume/Kaiko_stationary_files/diamond-2.0.15
 
 

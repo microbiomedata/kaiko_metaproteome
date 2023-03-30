@@ -1,4 +1,4 @@
-FROM tensorflow1.2.1-py36
+FROM tensorflow2.12.0-py310
 
 WORKDIR /Kaiko_pipeline
 ADD ./Kaiko_denovo /Kaiko_pipeline/Kaiko_denovo
@@ -11,4 +11,4 @@ ADD ./unit_test_util.py /Kaiko_pipeline
 ADD ./kaiko_defaults.yaml /Kaiko_pipeline
 
 RUN pip install --no-cache-dir --upgrade pip && \ 
-    pip install --no-cache-dir llvmlite==0.22 biopython==1.69 numba==0.37 pyteomics sigopt==3.2.0 memory-profiler pyyaml pathlib s3path
+    pip install --no-cache-dir llvmlite==0.39.1 biopython==1.81 numba==0.56.4 pyteomics sigopt==3.2.0 memory-profiler pyyaml pathlib s3path
