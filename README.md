@@ -24,6 +24,8 @@ Download the following files to the ```Kaiko_volume/Kaiko_stationary_files``` fo
 
 4) [Diamond search](https://github.com/bbuchfink/diamond/releases), choosing the appropriate system. If using Docker, get the Linux version.
 
+5) Denovo model: Within the ```Kaiko_denovo/model``` folder, open the ```get_data.sh``` script to download the trained model.
+
 ### Processing
 
 1) Extract the diamond file from step 4 into its own folder within ```Kaiko_volume/Kaiko_stationary_files```, eg ```Kaiko_volume/Kaiko_stationary_files/diamond```. 

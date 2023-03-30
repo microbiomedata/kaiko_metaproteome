@@ -1,0 +1,1 @@
+Use the script above to download the model to this folder.
