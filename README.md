@@ -4,8 +4,9 @@
 
 Put simply, this tool takes raw proteomic input and outputs a FASTA file of those organisms most likely to be present in the proteomic input.
 
-The pipeline uses neural networks to identify peptide sequences from raw proteomic input, which are then aligned against all protein sequences using a diamond search. This offers us a view of those organisms most likely to be present in the proteomic samples, with which we make a FASTA file from the most likely organisms identified.
+The pipeline uses a neural network to identify peptide sequences from raw proteomic input, which are then aligned against all protein sequences using a diamond search. This offers us a view of those organisms most likely to be present in the proteomic samples, with which we make a FASTA file from the most likely organisms identified.
 
+This is the pipeline discussed in the following paper: https://pubs.acs.org/doi/full/10.1021/acs.jproteome.2c00334
 
 ## Setup
 
