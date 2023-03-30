@@ -26,6 +26,9 @@ Kaiko_volume/Kaiko_stationary_files/*
 !Kaiko_volume/Kaiko_stationary_files/ExtractUniRefMembers.py
 !Kaiko_volume/config.yaml
 
+!Kaiko_denovo/model/get_data.sh
+!Kaiko_denovo/model/README.txt
+
 # pipeline outputs and inputs
 pipeline_input/*.MGF
 pipeline_intermediary/denovo_output/*.txt
