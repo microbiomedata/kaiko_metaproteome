@@ -13,6 +13,7 @@ config['denovo'] = {'topk' : False,
                     'profile' : False,
                     'beam_size' : 5,
                     'mgf_dir' : 'Kaiko_volume/Kaiko_input_files/',
+                    'cached' : False,
                     # 'train_dir' : 'model/'
                     # 'decode_dir' : 'Kaiko_volume/Kaiko_intermediate/denovo_output/',
                     }
@@ -24,7 +25,9 @@ config['diamond tally'] = {'ntops' : -1,
                            'mode' : 'member',
                           #  'fout' : 'Kaiko_volume/Kaiko_intermediate/kaiko_prediction_top_taxa.csv',
                           #  'diamond_output' : "Kaiko_volume/Kaiko_intermediate/denovo_output/diamond_search_output.dmd",
-                           'pident' : 100}
+                           'n_protein_cutoff' : 300000,
+                           'pident' : 100,
+                           'cached' : False}
 
 
 config['taxa to fasta'] = {'ref_fasta' : "Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz",

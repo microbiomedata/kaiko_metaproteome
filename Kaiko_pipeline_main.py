@@ -55,10 +55,11 @@ if config['denovo']['beam_search']:
 print("DeNovo: Running the following command:\n")
 for i in range(len(kaiko_1_args)):
     kaiko_1_args[i] = str(kaiko_1_args[i])
-print(" ".join(kaiko_1_args) + "\n")
 
-subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
-# subprocess.call(kaiko_1_args, cwd = "Kaiko_denovo")
+if not config['denovo']['cached']:
+    print(" ".join(kaiko_1_args) + "\n")
+    subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
+    # subprocess.call(kaiko_1_args, cwd = "Kaiko_denovo")
 
 if (config['denovo'])['profile']:
     profiler = cProfile.Profile()
@@ -84,18 +85,17 @@ diamond_args = diamond_args + ["blastp", "-d",
                 diamond_search_out.resolve().as_posix(), "-f", "6", "qseqid", 
                 "stitle", "pident", "evalue", "mismatch"]
 
+if not config['diamond tally']['cached']:
+    print("DeNovo: Running the following command:\n")
+    print(" ".join(diamond_args) + "\n")    
+    # os.chdir("Kaiko_volume/Kaiko_stationary_files/diamond-2.0.15")
+    os.chdir(diamond_folder)
+    print(os.getcwd())
+    os.system(" ".join(diamond_args))
+    os.chdir(working_dir)
 
-print("DeNovo: Running the following command:\n")
-print(" ".join(diamond_args) + "\n")
-
-
-# os.chdir("Kaiko_volume/Kaiko_stationary_files/diamond-2.0.15")
-os.chdir(diamond_folder)
-print(os.getcwd())
-os.system(" ".join(diamond_args))
-os.chdir(working_dir)
-
-kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction_top_taxa.csv")
+nprot = '{:.5e}'.format(int(config['diamond tally']['n_protein_cutoff']))
+kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}.csv')
 
 # Step 4. Tallying the diamond results
 run_diamond_tally(diamond_search_out, 
@@ -103,11 +103,11 @@ run_diamond_tally(diamond_search_out,
                   ncbi_taxa_folder, 
                   config['diamond tally']['mode'], 
                   kaiko_tally, 
-                  float(config['diamond tally']['pident']))
+                  float(config['diamond tally']['pident']),
+                  int(config['diamond tally']['n_protein_cutoff']))
 
 
 ## Step 5. Putting together the final fasta file.
-
 
 if config['taxa to fasta']['kingdom_list'] != "":
     kingdom_list = config['taxa to fasta']['kingdom_list'].split(', ')
