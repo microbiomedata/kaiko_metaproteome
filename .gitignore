@@ -18,6 +18,7 @@ Kaiko_volume/Kaiko_stationary_files/*
 /Kaiko_denovo/src-*
 /Kaiko_old
 /Dockerfile-py27
+/random txt files/*
 
 !Kaiko_volume/Kaiko_intermediate/denovo_output/README.txt
 !Kaiko_volume/Kaiko_stationary_files/README.txt
@@ -25,9 +26,6 @@ Kaiko_volume/Kaiko_stationary_files/*
 !Kaiko_volume/Kaiko_output/README.txt
 !Kaiko_volume/Kaiko_stationary_files/ExtractUniRefMembers.py
 !Kaiko_volume/config.yaml
-
-!Kaiko_denovo/model/get_data.sh
-!Kaiko_denovo/model/README.txt
 
 # pipeline outputs and inputs
 pipeline_input/*.MGF
@@ -169,3 +167,4 @@ Kaiko_denovo_tf1.15.0
 
 tf2.0.0_variable_names.txt
 tf_updgrade_report.txt
+*.pptx

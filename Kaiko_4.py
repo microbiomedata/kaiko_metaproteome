@@ -25,7 +25,7 @@ def aggregate_fasta(ref_fasta, diamon_tally, fout, ntops, taxa_key, kingdom_list
 
     print(tdf.head(20))
     
-    taxids = set(tdf.tax_id.tolist())
+    taxids = set(tdf.taxid.tolist())
     print("NCBI-TaxIDs:", taxids)
 
     key_for_taxid = '{}='.format(taxa_key)
@@ -64,6 +64,48 @@ def aggregate_fasta(ref_fasta, diamon_tally, fout, ntops, taxa_key, kingdom_list
 
     ofile.close()
 
+# def write_proteins(database_file, taxa, fout):
+#     index_s_path = Path('Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt')
+#     index_path = Path('Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt')
+#     index_s = pd.read_csv(index_s_path, sep = '\t', header = None)
+#     index_s.index = index_s[0]
+#     index_pos = int(index_s.loc[f'taxid_{taxa}_positions'][1])
+#     index = index_path.open('r')
+#     index.seek(index_pos)
+#     protein_pos = index.readline()
+#     protein_pos = protein_pos.split(';;')[1].split(';')[:-1]
+
+#     with fout.open('a') as output_fasta:
+#         for pos in protein_pos:
+#             database_file.seek(int(pos))
+    
+#             line = database_file.readline()
+#             line = line.decode("utf-8")
+
+#             reading_protein = True
+#             while reading_protein:
+#                 output_fasta.write(line)
+#                 line = database_file.readline()
+#                 if line[0] == 62:  # to find `>`
+#                     reading_protein = False
+#                 else:
+#                     line = line.decode("utf-8")
+    
+
+# def write_single_protein(database_file, pos, output_fasta):
+#     database_file.seek(pos)
+    
+#     line = database_file.readline()
+#     line = line.decode("utf-8")
+
+#     reading_protein = True
+#     while reading_protein:
+#         output_fasta.write(line)
+#         line = database_file.readline()
+#         if line[0] == 62:  # to find `>`
+#             reading_protein = False
+#         else:
+#             line = line.decode("utf-8")
 
 def rank_to_lineage(df):
     coverage = {}
@@ -77,37 +119,23 @@ def rank_to_lineage(df):
 
 EXCLUDED_RANKS = ['family','order','class','phylum','kingdom','superkingdom']
 
-###############################################################
-# parser = argparse.ArgumentParser()
 
-# parser.add_argument(
-#     '--taxafile', type=str, required=True,
-#     help='top-rank taxa file.')
+# from pathlib import Path, PureWindowsPath
 
-# parser.add_argument(
-#     '--ref_fasta', type=str, required=True,
-#     help='reference fasta file')
-
-# parser.add_argument(
-#     '--fout', type=str, required=True,
-#     help='output fasta file.')
-
-# parser.add_argument(
-#     '--key', type=str, default="TaxID",
-#     help='key value for the taxa ID. `TaxID` for UniRef fasta and `OX` for UniProtKB fasta')
-
-# parser.add_argument('-l','--list', nargs='+', required=False)
-
-# # parser.add_argument('-r','--rank', nargs='+', required=True)
-
-# parser.add_argument(
-#     '--ntops', type=int, default=5, required=True,
-#     help='top n taxa. -1 for all')
-
-# FLAGS = parser.parse_args()
-# print(FLAGS)
-
-###############################################################
+# prefix = "S1_NM0001_NMDC_MixedCommunities_R3_mgf"
+# diamond_search_out = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_diamond_search_output.dmd")
+# kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction_top_taxa.csv")
+# ncbi_taxa_folder = Path(PureWindowsPath("Kaiko_volume/Kaiko_stationary_files/ncbi_taxa").as_posix())
+# nprot = '{:.5e}'.format(int(300000))
+# kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}.csv')
+# ref_fasta = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz').as_posix())
+# kaiko_final_output = Path("Kaiko_volume/Kaiko_output/" + prefix + "_kaiko_output.fasta")
 
 
 
+# aggregate_fasta(ref_fasta,
+#                 kaiko_tally,
+#                 kaiko_final_output,
+#                 5,
+#                 'TaxID',
+#                 [])

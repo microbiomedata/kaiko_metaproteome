@@ -4,9 +4,8 @@
 
 Put simply, this tool takes raw proteomic input and outputs a FASTA file of those organisms most likely to be present in the proteomic input.
 
-The pipeline uses a neural network to identify peptide sequences from raw proteomic input, which are then aligned against all protein sequences using a diamond search. This offers us a view of those organisms most likely to be present in the proteomic samples, with which we make a FASTA file from the most likely organisms identified.
+The pipeline uses neural networks to identify peptide sequences from raw proteomic input, which are then aligned against all protein sequences using a diamond search. This offers us a view of those organisms most likely to be present in the proteomic samples, with which we make a FASTA file from the most likely organisms identified.
 
-This is the pipeline discussed in the following paper: https://pubs.acs.org/doi/full/10.1021/acs.jproteome.2c00334
 
 ## Setup
 
@@ -23,8 +22,6 @@ Download the following files to the ```Kaiko_volume/Kaiko_stationary_files``` fo
 3) [NCBI Taxonomy dump](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz) Less than 1Gb.
 
 4) [Diamond search](https://github.com/bbuchfink/diamond/releases), choosing the appropriate system. If using Docker, get the Linux version.
-
-5) Denovo model: Within the ```Kaiko_denovo/model``` folder, open the ```get_data.sh``` script to download the trained model.
 
 ### Processing
 

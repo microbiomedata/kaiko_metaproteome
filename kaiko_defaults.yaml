@@ -1,13 +1,16 @@
 denovo:
   beam_search: true
   beam_size: 5
+  cached: false
   mgf_dir: Kaiko_volume/Kaiko_input_files/
   multi_decode: true
   profile: false
   topk: false
 diamond tally:
+  cached: false
   diamond_folder: Kaiko_volume/Kaiko_stationary_files/diamond
   mode: member
+  n_protein_cutoff: 300000
   ncbi_taxa_folder: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa
   ntops: -1
   pident: 100
