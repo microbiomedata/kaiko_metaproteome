@@ -3,6 +3,7 @@ import cProfile
 import yaml
 import os
 import re
+import argparse
 
 from pathlib import Path, PureWindowsPath
 from s3path import S3Path
@@ -11,18 +12,25 @@ from Kaiko_4 import aggregate_fasta
 from Kaiko_3 import run_diamond_tally
 from Kaiko_2 import combine_denovo_output
 
-## Parsing
+parser = argparse.ArgumentParser()
 
+parser.add_argument("-config", "--config", help="YAML file with parameters for pipeline, and input files path. Any found values in config replace the default values.")
+args = parser.parse_args()
+
+
+## Parsing
 kaiko_defaults_path = Path('kaiko_defaults.yaml')
 config = yaml.safe_load(kaiko_defaults_path.open())
-user_config_path = Path('Kaiko_volume/config.yaml')
 
-if user_config_path.exists():
-    config_user = yaml.safe_load(user_config_path.open())
+assert args.config is not None, "Please provide a config file with the spectrum path (mgf files). Use flag --config to pass the path. See the tutorial for more information."
+user_config_path = Path(args.config)
+assert user_config_path.exists(), "File " + str(user_config_path.absolute()) + " does not exist."
+config_user = yaml.safe_load(user_config_path.open())
 
-    for section in config_user.keys():
-        for param in config_user[section].keys():
-            config[section][param] = config_user[section][param]
+## Overriding defaults if values found in user config.
+for section in config_user.keys():
+    for param in config_user[section].keys():
+        config[section][param] = config_user[section][param]
 
 
 ## handling any backslashes with this. All final paths used here have forward slashes, 
@@ -95,11 +103,12 @@ if not config['diamond tally']['cached']:
     os.chdir(working_dir)
 
 nprot = '{:.5e}'.format(int(config['diamond tally']['n_protein_cutoff']))
-kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}.csv')
+top_strains = str(config['taxa to fasta']['top_strains'])
+kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{top_strains}_strains.csv')
 
 # Step 4. Tallying the diamond results
 run_diamond_tally(diamond_search_out, 
-                  int(config['diamond tally']['ntops']), 
+                  int(config['taxa to fasta']['top_strains']), 
                   ncbi_taxa_folder, 
                   config['diamond tally']['mode'], 
                   kaiko_tally, 
@@ -115,12 +124,15 @@ if config['taxa to fasta']['kingdom_list'] != "":
 else:
     kingdom_list = []
 
-kaiko_final_output = Path("Kaiko_volume/Kaiko_output/" + prefix + "_kaiko_output.fasta")
+coverage_target = str(config['taxa to fasta']['coverage_target'])
+kaiko_final_output = Path("Kaiko_volume/Kaiko_output/" + prefix + f'_kaiko_fasta_coverage_{coverage_target}_nprot_{nprot}_top{top_strains}_strains.fasta')
 
 aggregate_fasta(ref_fasta,
                 kaiko_tally,
                 kaiko_final_output,
-                int(config['taxa to fasta']['ntops']),
+                config['taxa to fasta']['coverage_target'],
+                int(config['taxa to fasta']['top_strains']),
+                ncbi_taxa_folder,
                 config['taxa to fasta']['taxa_key'],
                 kingdom_list)
 

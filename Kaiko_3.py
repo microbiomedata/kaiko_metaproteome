@@ -9,10 +9,9 @@ from pathlib import Path, PureWindowsPath
 
 
 # @profile    
-def run_diamond_tally(diamond_output, ntops, ncbi_taxa_folder, mode, fout, pident, n_protein_cutoff):
-    nprot = '{:.5e}'.format(n_protein_cutoff)
+def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, fout, pident, n_protein_cutoff):
     detailed_fout = fout.parent / (re.sub("_kaiko_prediction_.*.csv$", "", fout.name) + '_detailed.csv')
-    taxa_stats_path = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100_stats.txt'))
+    taxa_stats_path = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100_member_stats_with_lineage.txt'))
     taxa_stats = pd.read_csv(taxa_stats_path, sep = '\t')
 
     if mode=="member":
@@ -95,10 +94,12 @@ def run_diamond_tally(diamond_output, ntops, ncbi_taxa_folder, mode, fout, piden
     else:
         print("Loading |scan|protein|taxa| table" + detailed_fout.name + "\n")
         detailed_output = pd.read_csv(detailed_fout)
-        detailed_output = detailed_output[['scan', 'uid', 'protein', 'member_taxa', 'common_taxa']]
-        detailed_output = detailed_output.merge(taxa_stats, left_on = taxa_col, right_on = 'taxid', how = 'left')
+
+    detailed_output = detailed_output[detailed_output['genus'] == detailed_output['genus']]
+    detailed_output = detailed_output[['scan', 'uid', 'protein', 'member_taxa', 'common_taxa']]
+    detailed_output = detailed_output.merge(taxa_stats, left_on = taxa_col, right_on = 'taxid', how = 'left')
     
-    detailed_output = detailed_output[detailed_output['n_protein'] < n_protein_cutoff]
+    # detailed_output = detailed_output[detailed_output['n_protein'] < n_protein_cutoff]
     unique_pepseq_taxa = detailed_output.drop_duplicates(subset=['scan',taxa_col])
     pepcount_taxid = unique_pepseq_taxa[taxa_col].value_counts()
 
@@ -112,13 +113,20 @@ def run_diamond_tally(diamond_output, ntops, ncbi_taxa_folder, mode, fout, piden
     for besthit in unique_pepseq_taxa.groupby(by='scan').apply(besthit):
         besthits += besthit
     besthits = pd.Series(besthits).value_counts()
+
+    pepcount_taxid = pepcount_taxid.to_frame('hits')
+    pepcount_taxid['taxid'] = pepcount_taxid.index
+    pepcount_taxid = pepcount_taxid.merge(taxa_stats[['taxid', 'tax_name', 'rank', 'species', 'n_protein']], left_on = 'taxid', right_on = 'taxid', how = 'left')
     
-    if ntops > 0:
-        _ntops = ntops
+    if n_strain_select > 0 & n_strain_select <= 5:
+        _n_strain_select = 5
+    elif n_strain_select > 5:
+        _n_strain_select = n_strain_select
     else:
-        _ntops = besthits.shape[0]
+        _n_strain_select = -1
     
-    top_taxa = besthits.nlargest(_ntops, keep='all').to_frame(name='hits')
+    # top_taxa = besthits.nlargest(n_strain_select, keep='all').to_frame(name='hits')
+    top_taxa = besthits.to_frame(name='hits')
     top_taxa['taxid'] = top_taxa.index
 
     ############################################################
@@ -126,10 +134,32 @@ def run_diamond_tally(diamond_output, ntops, ncbi_taxa_folder, mode, fout, piden
     ############################################################
     print("Saving top-rank taxa info...")
     # df = pd.concat([top_taxa, taxa_stats], join='inner', axis=1)
-    df = top_taxa.merge(taxa_stats[['taxid', 'tax_name', 'rank', 'n_protein']], left_on = 'taxid', right_on = 'taxid')
-    df = df[['taxid', 'tax_name', 'rank', 'hits', 'n_protein']]
-    df.index.name = 'taxid'
-    if fout: df.sort_values(by="hits", ascending=False).to_csv(fout, index = False)
+    df = top_taxa.merge(taxa_stats[['taxid', 'tax_name', 'rank', 'species', 'n_protein']], left_on = 'taxid', right_on = 'taxid', how = 'left')
+    df = df[['taxid', 'tax_name', 'species', 'rank', 'hits', 'n_protein']]
+    df['running_coverage'] = df['hits'].cumsum()/df['hits'].sum()
+    append = pd.DataFrame({'taxid' : [],
+                           'tax_name' : [],
+                           'species' : [],
+                           'rank' : [],
+                           'hits' : [],
+                           'n_protein' : [],
+                           'running_coverage' : [],
+                           'notes' : []})
+    df['notes'] = 'Primary taxa identified by Kaiko. \'hits\' denotes tally2 hits'
+    pepcount_taxid = pepcount_taxid[pepcount_taxid['n_protein'] < n_protein_cutoff]
+    for index in range(len(df)):
+        if df.iloc[index].n_protein > n_protein_cutoff:
+            if n_strain_select == -1:
+                subcount = pepcount_taxid[pepcount_taxid['species'] == df['tax_name'][index]].copy()
+            else:
+                subcount = pepcount_taxid[pepcount_taxid['species'] == df['tax_name'][index]].copy().iloc[0:_n_strain_select]
+            subcount['running_coverage'] = df['running_coverage'][index]
+            subcount['notes'] = 'Strain of primary taxa ' + df['tax_name'][index] + ' below proteome size cutoff. \'hits\' denotes tally1 hits'
+            append = pd.concat([append, subcount])
+
+    df = pd.concat([df, append])
+    df = df.sort_values(by = ['running_coverage', 'notes'])
+    if fout: df.to_csv(fout, index = False)
 
 def read_dmd(diamond_output):
     dmd_colnames = ['scans','uniref_seq','pident','evalue','mismatch']
@@ -169,7 +199,10 @@ def collect_taxid(filtered_dmd):
     # 9606  # Homo sapiens
     # 412755  # marine sediment metagenome
     # 408172  # marine metagenome
-    drop_taxids = set(['1','2','9606','412755','408172'])
+    # 9823 # Sus scrofa (pig)
+    drop_taxids = set(['1','2','9606','412755','408172', '9823'])
+    print("Dropping the following taxids\n")
+    print(drop_taxids)
 
     _filtered_dmd = filtered_dmd[~((filtered_dmd.taxid=='')|(filtered_dmd.taxid.isin(drop_taxids)))].copy()
     _filtered_dmd.taxid = _filtered_dmd.taxid.astype(int)
@@ -203,11 +236,12 @@ def get_taxa_members(member_tbl_file, unique_unirefs):
 
 # prefix = "S1_NM0001_NMDC_MixedCommunities_R3_mgf"
 # diamond_search_out = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_diamond_search_output.dmd")
-# kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction_top_taxa.csv")
+# nprot = '{:.5e}'.format(int(69000))
+# kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{5}_strains.csv')
 # ncbi_taxa_folder = Path(PureWindowsPath("Kaiko_volume/Kaiko_stationary_files/ncbi_taxa").as_posix())
 
 # run_diamond_tally(diamond_search_out, 
-#                   -1, 
+#                   1, 
 #                   ncbi_taxa_folder, 
 #                   "member", 
 #                   kaiko_tally, 

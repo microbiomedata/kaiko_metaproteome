@@ -182,7 +182,7 @@ def gather_taxa_stats_5(stats_output, ncbi_taxa_folder):
     taxa_stats = pd.read_csv(stats_output, sep = '\t')
     print(len(taxa_stats))
     taxa_stats = taxa_stats.merge(taxa_table, left_on="taxid", right_on="tax_id", how="left")
-    taxa_stats = taxa_stats[['taxid', 'tax_name', 'rank', 'n_protein', 'n_AA']]
+    taxa_stats = taxa_stats[['taxid', 'tax_name', 'rank', 'n_protein', 'n_AA', 'species', 'genus', 'family', 'order', 'class', 'phylum', 'kingdom', 'superkingdom']]
     taxa_stats.to_csv(stats_output, sep = '\t', index = False)
     
 
