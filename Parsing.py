@@ -19,8 +19,7 @@ config['denovo'] = {'topk' : False,
                     }
 
 
-config['diamond tally'] = {'ntops' : -1,
-                           'diamond_folder' : 'Kaiko_volume/Kaiko_stationary_files/diamond',
+config['diamond tally'] = {'diamond_folder' : 'Kaiko_volume/Kaiko_stationary_files/diamond',
                            'ncbi_taxa_folder' : "Kaiko_volume/Kaiko_stationary_files/ncbi_taxa",
                            'mode' : 'member',
                           #  'fout' : 'Kaiko_volume/Kaiko_intermediate/kaiko_prediction_top_taxa.csv',
@@ -33,7 +32,8 @@ config['diamond tally'] = {'ntops' : -1,
 config['taxa to fasta'] = {'ref_fasta' : "Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz",
                           #  'diamond_tally' : "Kaiko_volume/Kaiko_intermediate/kaiko_prediction_top_taxa.csv",
                           #  'fout' : "Kaiko_volume/Kaiko_output/kaiko_output.fasta",
-                           'ntops' : 5,
+                           'coverage_target' : 0.66,
+                           'top_strains' : 1,
                            'taxa_key' : "TaxID",
                            'kingdom_list' : ""}
 
