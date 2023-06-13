@@ -70,14 +70,31 @@ def inspect_file_location(data_format, input_file):
   elif data_format == "mgf":
     keyword = "BEGIN IONS"
 
+  # spectra_file_location = []
+  # start_time = time.time()
+  # with open(input_file, mode="r") as file_handle:
+  #   line = True
+  #   while line:
+  #     file_location = file_handle.tell()
+  #     line = file_handle.readline()
+  #     if len(line) > 0:
+  #       if line[0] == 'B':
+  #         if keyword in line:
+  #           spectra_file_location.append(file_location)
+  # print(time.time() - start_time)
+
   spectra_file_location = []
+  # start_time = time.time()
   with open(input_file, mode="r") as file_handle:
-    line = True
-    while line:
-      file_location = file_handle.tell()
-      line = file_handle.readline()
-      if keyword in line:
-        spectra_file_location.append(file_location)
+    file_location = 0
+    for line in file_handle:     
+      if len(line) > 0:
+        if line[0] == 'B':
+          if keyword in line:
+            spectra_file_location.append(file_location)
+            
+      file_location = file_location + len(line)
+  # print(time.time() - start_time)    
 
   return spectra_file_location
 
@@ -93,6 +110,26 @@ def inspect_files_locations(data_format, input_files):
     file_index[0].append(input_file)
     file_index[1].append(len(spectra_file_locations))
   return file_index,spectra_file_locations
+
+
+def spectra_header(file_handle, location):
+  file_handle.seek(location)
+  line = file_handle.readline()
+  assert ("BEGIN IONS" in line), "ERROR: read_spectra(); wrong format"
+
+  header_dict = {}
+  new_location = location + len(line)
+  line = file_handle.readline()
+  ## while not reading mass + intensity
+  while not bool(re.search("^[0-9.]+ [0-9.]+$", line)):
+    var_name = re.split('=|\n', line)[0]
+    var_value = re.split('=|\n', line)[1]
+    header_dict[var_name] = var_value
+    new_location = new_location + len(line)
+    line = file_handle.readline()
+  
+  file_handle.seek(new_location)
+  return(header_dict)
 
 
 def read_spectra(file_handle, data_format, spectra_locations):
@@ -118,10 +155,19 @@ def read_spectra(file_handle, data_format, spectra_locations):
     keyword = "BEGIN IONS"
 
   for location in spectra_locations:
+    header_dict = spectra_header(file_handle, location)
+    peptide_ion_mz = float(header_dict['PEPMASS'].split(' ')[0])
+    charge = float(header_dict['CHARGE'].split('+')[0])
 
-    file_handle.seek(location)
-    line = file_handle.readline()
-    assert (keyword in line), "ERROR: read_spectra(); wrong format"
+    if ('SCANS' in header_dict.keys()):
+      scan = header_dict['SCANS']
+    else:
+      scan = header_dict['TITLE'].split('scan=')
+
+    if ('SEQ' in header_dict.keys()):
+      raw_sequence = header_dict['SEQ']
+    else:
+      raw_sequence = 'UNKNOWN'
 
     unknown_modification = False
     unknown_AA = False
@@ -129,28 +175,28 @@ def read_spectra(file_handle, data_format, spectra_locations):
     # READ AN ENTRY
     if data_format == "mgf":
 
-      # header TITLE
-      line = file_handle.readline()
+      # # header TITLE
+      # line = file_handle.readline()
 
-      # header PEPMASS
-      line = file_handle.readline()
-      peptide_ion_mz = float(re.split('=|\n', line)[1])
+      # # header PEPMASS
+      # line = file_handle.readline()
+      # peptide_ion_mz = float(re.split('=|\n', line)[1])
 
-      # header CHARGE
-      line = file_handle.readline()
-      charge = float(re.split('=|\+', line)[1]) # pylint: disable=anomalous-backslash-in-string,line-too-long
+      # # header CHARGE
+      # line = file_handle.readline()
+      # charge = float(re.split('=|\+', line)[1]) # pylint: disable=anomalous-backslash-in-string,line-too-long
 
-      # header SCANS
-      line = file_handle.readline()
-      #~ scan = int(re.split('=', line)[1])
-      scan = re.split('=|\n', line)[1]
+      # # header SCANS
+      # line = file_handle.readline()
+      # #~ scan = int(re.split('=', line)[1])
+      # scan = re.split('=|\n', line)[1]
 
-      # header RTINSECONDS
-      line = file_handle.readline()
+      # # header RTINSECONDS
+      # line = file_handle.readline()
 
-      # header SEQ
-      line = file_handle.readline()
-      raw_sequence = re.split('=|\n|\r', line)[1]
+      # # header SEQ
+      # line = file_handle.readline()
+      # raw_sequence = re.split('=|\n|\r', line)[1]
 
       ###########################
       ## for unknown sequences ##
