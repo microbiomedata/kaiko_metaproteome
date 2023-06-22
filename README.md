@@ -11,7 +11,11 @@ The pipeline uses neural networks to identify peptide sequences from raw proteom
 
 Before first use, a few database files are needed.
 
+Runs using python 3.10 and tensorflow 2.11.0. The full list of requirements can be found in ```Kaiko_volume/setup_libraries.txt```
+
 ### Downloading Files
+
+1) Run the file `Kaiko_denovo/model/get_data.sh` to download the trained Kaiko denovo model.
 
 Download the following files to the ```Kaiko_volume/Kaiko_stationary_files``` folder.
 
