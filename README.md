@@ -9,9 +9,9 @@ The pipeline uses neural networks to identify peptide sequences from raw proteom
 
 ## Setup
 
-Before first use, a few database files are needed.
+Uses python 3.10 and tensorflow 2.11.0. The full list of requirements can be found in ```Kaiko_volume/setup_libraries.txt```
 
-Runs using python 3.10 and tensorflow 2.11.0. The full list of requirements can be found in ```Kaiko_volume/setup_libraries.txt```
+Before first use, a few files are needed.
 
 ### Downloading Files
 
