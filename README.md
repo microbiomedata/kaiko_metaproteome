@@ -63,7 +63,7 @@ The ```Kaiko_volume/Kaiko_intermediate/``` folder will be populated with a few i
 
 To use the pipeline within Docker, follow steps 1-2 in Usage, then jump here:
 
-3) (Docker) Run the command ```docker build -f Dockerfile_tensorflow1.2.1-py36``` to make the tensorflow image.
+3) (Docker) Run the command ```docker build -f Dockerfile_tensorflow1.2.1-py36 .``` to make the tensorflow image.
 
 4) (Docker) Run the command ```docker build . -t kaiko-py36``` to build the Kaiko docker image using the tensorflow image from step 3)
 
