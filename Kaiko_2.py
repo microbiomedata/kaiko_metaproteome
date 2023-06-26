@@ -48,8 +48,9 @@ def combine_denovo_output(directory, prefix, selection = 0.25):
 
     combined_fasta = Path('Kaiko_volume/Kaiko_intermediate/' + prefix + '_combined_denovo.fasta')
 
-    for summary in samples:
-        nms = [">S" + summary['scans'][i] + "_" + str(summary['times'][i]) for i in range(len(summary))]
+    for index in range(len(samples)):
+        summary = samples[index]
+        nms = [">S" + str(index) + '_' + summary['scans'][i] + "_" + str(summary['times'][i]) for i in range(len(summary))]
         to_write = [None]*2*len(nms)
         to_write[::2] = nms
         to_write[1::2] = summary['output_seq']

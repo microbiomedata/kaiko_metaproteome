@@ -6,7 +6,48 @@ import yaml
 
 from pathlib import Path, PureWindowsPath
 
+def run_kaiko_denovo(config_path):
+    kaiko_defaults_path = Path('kaiko_defaults.yaml')
+    config = yaml.safe_load(kaiko_defaults_path.open())
 
+    user_config_path = Path(config_path)
+    assert user_config_path.exists(), "File " + str(user_config_path.absolute()) + " does not exist."
+    config_user = yaml.safe_load(user_config_path.open())
+
+    ## Overriding defaults if values found in user config.
+    for section in config_user.keys():
+        for param in config_user[section].keys():
+            config[section][param] = config_user[section][param]
+
+    mgf_dir = Path(PureWindowsPath(config['denovo']['mgf_dir']).as_posix())
+    prefix = mgf_dir.name
+
+    denovout_dir = Path('Kaiko_volume/Kaiko_intermediate/denovo_output/' + prefix)
+    if not denovout_dir.exists():
+        denovout_dir.mkdir()
+
+    ## Step 1. Run Denovo using subprocess.
+    kaiko_1_args = ["python", "src/kaiko_main.py", 
+                    "--mgf_dir", mgf_dir.resolve(), 
+                    "--train_dir", "model/",
+                    "--decode_dir", denovout_dir.resolve(),
+                    "--profile", config['denovo']['profile']]
+
+    if config['denovo']['topk']:
+        kaiko_1_args = kaiko_1_args + ["--topk"]
+    if config['denovo']['multi_decode']:
+        kaiko_1_args = kaiko_1_args + ["--multi_decode"]
+    if config['denovo']['beam_search']:
+        kaiko_1_args = kaiko_1_args + ["--beam_search", "--beam_size", config['denovo']['beam_size']]     
+
+    print("DeNovo: Running the following command:\n")
+    for i in range(len(kaiko_1_args)):
+        kaiko_1_args[i] = str(kaiko_1_args[i])
+
+    if not config['denovo']['cached']:
+        print(" ".join(kaiko_1_args) + "\n")
+        subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
+        # subprocess.call(kaiko_1_args, cwd = "Kaiko_denovo")
 
 def run_new_parameters(topk, beam_size):
     config = {}
