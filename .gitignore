@@ -13,7 +13,6 @@ Kaiko_volume/Kaiko_intermediate/*.dmd
 Kaiko_volume/Kaiko_intermediate/*.csv
 Kaiko_volume/Kaiko_intermediate/denovo_output/*
 Kaiko_volume/Kaiko_output/*
-Kaiko_volume/Kaiko_stationary_files/*
 /Kaiko_denovo_py27
 /Kaiko_denovo/src-*
 /Kaiko_old
