@@ -95,7 +95,7 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
         print("Loading |scan|protein|taxa| table" + detailed_fout.name + "\n")
         detailed_output = pd.read_csv(detailed_fout)
 
-    detailed_output = detailed_output[detailed_output['genus'] == detailed_output['genus']]
+    # detailed_output = detailed_output[detailed_output['genus'] == detailed_output['genus']]
     detailed_output = detailed_output[['scan', 'uid', 'protein', 'member_taxa', 'common_taxa']]
     detailed_output = detailed_output.merge(taxa_stats, left_on = taxa_col, right_on = 'taxid', how = 'left')
     
@@ -116,7 +116,7 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
 
     pepcount_taxid = pepcount_taxid.to_frame('hits')
     pepcount_taxid['taxid'] = pepcount_taxid.index
-    pepcount_taxid = pepcount_taxid.merge(taxa_stats[['taxid', 'tax_name', 'rank', 'species', 'n_protein']], left_on = 'taxid', right_on = 'taxid', how = 'left')
+    pepcount_taxid = pepcount_taxid.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
     
     if n_strain_select > 0 & n_strain_select <= 5:
         _n_strain_select = 5
@@ -134,8 +134,7 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
     ############################################################
     print("Saving top-rank taxa info...")
     # df = pd.concat([top_taxa, taxa_stats], join='inner', axis=1)
-    df = top_taxa.merge(taxa_stats[['taxid', 'tax_name', 'rank', 'species', 'n_protein']], left_on = 'taxid', right_on = 'taxid', how = 'left')
-    df = df[['taxid', 'tax_name', 'species', 'rank', 'hits', 'n_protein']]
+    df = top_taxa.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
     df['running_coverage'] = df['hits'].cumsum()/df['hits'].sum()
     append = pd.DataFrame({'taxid' : [],
                            'tax_name' : [],
@@ -149,17 +148,32 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
     pepcount_taxid = pepcount_taxid[pepcount_taxid['n_protein'] < n_protein_cutoff]
     for index in range(len(df)):
         if df.iloc[index].n_protein > n_protein_cutoff:
-            if n_strain_select == -1:
-                subcount = pepcount_taxid[pepcount_taxid['species'] == df['tax_name'][index]].copy()
-            else:
-                subcount = pepcount_taxid[pepcount_taxid['species'] == df['tax_name'][index]].copy().iloc[0:_n_strain_select]
-            subcount['running_coverage'] = df['running_coverage'][index]
-            subcount['notes'] = 'Strain of primary taxa ' + df['tax_name'][index] + ' below proteome size cutoff. \'hits\' denotes tally1 hits'
+            subcount = find_smaller_taxa(df, pepcount_taxid, _n_strain_select, index)
             append = pd.concat([append, subcount])
 
     df = pd.concat([df, append])
     df = df.sort_values(by = ['running_coverage', 'notes'])
     if fout: df.to_csv(fout, index = False)
+
+def find_smaller_taxa(df, pepcount_taxid, _n_strain_select, index):
+    tax_ranks = ['species', 'genus', 'family', 'order', 'class', 'phylum', 'kingdom', 'superkingdom']
+    tax_index = 0
+    subcount = []
+    while len(subcount) == 0 and tax_index < 8:
+        tax_rank = tax_ranks[tax_index]
+        if tax_rank == 'species':
+            rank_value_col = 'tax_name'
+        else:
+            rank_value_col = tax_rank
+        if _n_strain_select == -1:
+            subcount = pepcount_taxid[pepcount_taxid[tax_rank] == df[rank_value_col][index]].copy()
+        else:
+            subcount = pepcount_taxid[pepcount_taxid[tax_rank] == df[rank_value_col][index]].copy().iloc[0:_n_strain_select]
+        subcount['running_coverage'] = df['running_coverage'][index]
+        subcount['notes'] = 'Secondary taxa identified by Kaiko, with the same {} ({}) as the primary taxa ({}) below the proteome size cutoff. \'hits\' denotes tally1 hits'.format(tax_rank, str(df[rank_value_col][index]), df['tax_name'][index])
+        tax_index = tax_index + 1
+
+    return(subcount)
 
 def read_dmd(diamond_output):
     dmd_colnames = ['scans','uniref_seq','pident','evalue','mismatch']

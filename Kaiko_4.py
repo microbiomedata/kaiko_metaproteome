@@ -30,17 +30,18 @@ def aggregate_fasta(ref_fasta, diamon_tally, fout, coverage_target, top_strains,
 
     print(tdf.head(20))
     coverage_steps = [*set(tdf['running_coverage'].values)]
+    coverage_steps.sort()
     taxids = []
 
     for fasta_addition in coverage_steps:
         fasta_addition = tdf[tdf['running_coverage'] == fasta_addition]
         primary_species = ['Primary' in str for str in fasta_addition['notes']]
-        secondary_strains = ['Strain' in str for str in fasta_addition['notes']]
+        secondary_strains = ['Secondary' in str for str in fasta_addition['notes']]
         if any(secondary_strains):
             fasta_addition = fasta_addition[secondary_strains].nlargest(top_strains, 'hits')
         else:
             fasta_addition = fasta_addition[primary_species].nlargest(top_strains, 'hits')
-        taxids = taxids + [int(fasta_addition['taxid'].iloc[0])]
+        taxids = taxids + [int(selected_taxid) for selected_taxid in fasta_addition['taxid'].values]
 
     fout_proteome = fout.parent / (fout.stem + '_proteome.txt')
     print("NCBI-TaxIDs:", taxids)
@@ -163,8 +164,8 @@ EXCLUDED_RANKS = ['family','order','class','phylum','kingdom','superkingdom']
 # diamond_search_out = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_diamond_search_output.dmd")
 # kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction_top_taxa.csv")
 # ncbi_taxa_folder = Path(PureWindowsPath("Kaiko_volume/Kaiko_stationary_files/ncbi_taxa").as_posix())
-# nprot = '{:.5e}'.format(int(150000))
-# kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{5}_strains.csv')
+# nprot = '{:.5e}'.format(int(117000))
+# kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{1}_strains.csv')
 # ref_fasta = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz').as_posix())
 # kaiko_final_output = Path("Kaiko_volume/Kaiko_output/" + prefix + "_kaiko_output.fasta")
 
@@ -172,5 +173,9 @@ EXCLUDED_RANKS = ['family','order','class','phylum','kingdom','superkingdom']
 #                 kaiko_tally,
 #                 kaiko_final_output,
 #                 0.66,
+#                 1,
+#                 ncbi_taxa_folder,
 #                 'TaxID',
 #                 [])
+
+# aggregate_fasta(ref_fasta, diamon_tally, fout, coverage_target, top_strains, ncbi_taxa_folder, taxa_key, kingdom_list = [])
