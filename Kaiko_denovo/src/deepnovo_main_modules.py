@@ -86,14 +86,26 @@ def inspect_file_location(data_format, input_file):
   spectra_file_location = []
   # start_time = time.time()
   with open(input_file, mode="r") as file_handle:
+    # file_location = 0
+    # for line in file_handle:     
+    #   if len(line) > 0:
+    #     if line[0] == 'B':
+    #       if keyword in line:
+    #         spectra_file_location.append(file_location)
+            
+    #   file_location = file_location + len(line)
+
     file_location = 0
-    for line in file_handle:     
+    line = file_handle.readline()
+    while line:     
       if len(line) > 0:
         if line[0] == 'B':
           if keyword in line:
             spectra_file_location.append(file_location)
             
-      file_location = file_location + len(line)
+      # file_location = file_location + len(line)
+      file_location = file_handle.tell()
+      line = file_handle.readline()
   # print(time.time() - start_time)    
 
   return spectra_file_location
