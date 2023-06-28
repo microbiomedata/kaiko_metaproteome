@@ -118,14 +118,16 @@ def spectra_header(file_handle, location):
   assert ("BEGIN IONS" in line), "ERROR: read_spectra(); wrong format"
 
   header_dict = {}
-  new_location = location + len(line)
+  # new_location = location + len(line)
+  new_location = file_handle.tell()
   line = file_handle.readline()
   ## while not reading mass + intensity
   while not bool(re.search("^[0-9.]+ [0-9.]+$", line)):
     var_name = re.split('=|\n', line, 1)[0]
     var_value = re.split('=|\n', line, 1)[1]
     header_dict[var_name] = var_value
-    new_location = new_location + len(line)
+    # new_location = new_location + len(line)
+    new_location = file_handle.tell()
     line = file_handle.readline()
   
   file_handle.seek(new_location)
