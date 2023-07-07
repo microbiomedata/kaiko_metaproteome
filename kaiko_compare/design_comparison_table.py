@@ -35,7 +35,8 @@ result = result.rename(columns={'index': 'scan_index'})
 comparison_df = pd.merge(result, casanovo_df, on="scan_index")
 comparison_df = comparison_df[['scans', 'pepmass', 'charge', 'rtinseconds', 'target_seq', 'output_seq', 'casanovo_sequence']]
 comparison_df = comparison_df.rename(columns={'scans': 'scan_num', 'output_seq': 'kaiko_seq', 'casanovo_sequence': 'casanovo_seq'})
+print(comparison_df['target_seq'])
 
 
-comparison_np = comparison_df.to_numpy()
-np.savetxt('C:\\Users\\leej179\\git\\kaiko_metaproteome\\kaiko_compare\\comparison_output\\comparison_file.txt', comparison_np, fmt="%s")
+# comparison_np = comparison_df.to_numpy()
+# np.savetxt('C:\\Users\\leej179\\git\\kaiko_metaproteome\\kaiko_compare\\comparison_output\\comparison_file.txt', comparison_np, fmt="%s")
