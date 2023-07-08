@@ -1,42 +1,77 @@
+"""
+this script is focused on minimizing the parsing and putting together
+a comparison between the target sequence and what the two models,
+kaiko and casanovo predicts
+"""
 from pyteomics import mgf
 from pyteomics import mztab
 import pandas as pd
 import numpy as np
 
 # path below: path\to\mgf_file
-f = mgf.read("C:\\Users\\leej179\\git\\kaiko_metaproteome\\Kaiko_volume\\Kaiko_input_files\\mgf_large_unit_test\\Biodiversity_A_cryptum_FeTSB_anaerobic_1_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969.mgf",
-              use_index=True)
-sequence = {}
-for i in range(0, 40):
-    sequence[i] = i
-    sequence[i] = f[i]['params']
+mgf_file_path = "C:\\Users\\leej179\\git\\kaiko_metaproteome\\Kaiko_volume\\Kaiko_input_files\\mgf_large_unit_test\\Biodiversity_A_cryptum_FeTSB_anaerobic_1_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969.mgf"
+# read a mgf file
+mgf_data = mgf.read(mgf_file_path, use_index=True)
 
-df = pd.DataFrame.from_dict({i: sequence[i]
-                            for i in sequence.keys()},
-                            orient='index')
+# extract the precursor info from mgf_data as a dataframe
+precursors = [d['params'] for d in mgf_data]
+df = pd.DataFrame.from_records(precursors)
+
+# create an index column
 df.reset_index(inplace=True)
+# select the first element in a pepmass tuple
 df['pepmass'] = df['pepmass'].apply(lambda x: x[0])
+# get a integer for a charge value from the charge list
 df['charge'] = df['charge'].apply(lambda x: int(x[0]))
 
 # path below: path\to\text_file
-kaiko_df = pd.read_csv('C:\\Users\\leej179\\git\\kaiko_metaproteome\\Kaiko_volume\\Kaiko_intermediate\\denovo_output\\mgf_large_unit_test\\Biodiversity_A_cryptum_FeTSB_anaerobic_1_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969_out.txt',
-                   delimiter="\t")
-kaiko_df.reset_index(inplace=True)
+kaiko_output_path = 'C:\\Users\\leej179\\git\\kaiko_metaproteome\\Kaiko_volume\\Kaiko_intermediate\\denovo_output\\mgf_large_unit_test\\Biodiversity_A_cryptum_FeTSB_anaerobic_1_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969_out.txt'
+# read a kaiko output file
+kaiko_df = pd.read_csv(kaiko_output_path, delimiter="\t")
 
 # path below: path\to\mztab_file
-tables = mztab.MzTab("C:\\Users\\leej179\\git\\casanovo\\output\\casanovo_test_1_output.mztab")
+casanovo_output_path = "C:\\Users\\leej179\\git\\casanovo\\output\\casanovo_test_1_output.mztab"
+# read a casanovo output mztab file
+tables = mztab.MzTab(casanovo_output_path)
+# get a PSM table
 psms = tables.spectrum_match_table
+# extract the scan index from the `spectra_ref` column, e.g., ms_run[1]:index=25
 psms['scan_index'] = psms["spectra_ref"].str.extract("index=(\\d+)")[0]
+# convert the scan index as an object to integer
 psms['scan_index'] = psms['scan_index'].astype(int)
-mztab_df = psms[['scan_index', 'sequence']]
-casanovo_df = mztab_df.rename(columns={'sequence': 'casanovo_sequence'})
+# create the mztab dataframe with scan index and sequence
+casanovo_df = psms[['scan_index', 'sequence']]
+# rename the column: sequnce to casanovo 
+casanovo_df = casanovo_df.rename(columns={'sequence': 'casanovo_sequence'})
 
-result = pd.merge(df, kaiko_df, on="index")
-result = result.rename(columns={'index': 'scan_index'})
-comparison_df = pd.merge(result, casanovo_df, on="scan_index")
-comparison_df = comparison_df[['scans', 'pepmass', 'charge', 'rtinseconds', 'target_seq', 'output_seq', 'casanovo_sequence']]
-comparison_df = comparison_df.rename(columns={'scans': 'scan_num', 'output_seq': 'kaiko_seq', 'casanovo_sequence': 'casanovo_seq'})
+# merge the mgf df and kaiko df with scan number
+result = df.merge(kaiko_df, left_on="scans", right_on="scan")
+print(result)
+# merge the merged df with the casanovo df with scan index
+comparison_df = result.merge(casanovo_df, left_on="index", right_on="scan_index")
+print(comparison_df)
+# get the specific columns that are necessary
+comparison_df = comparison_df[[
+    'scans',
+    'pepmass',
+    'charge',
+    'rtinseconds',
+    'seq',
+    'target_seq',
+    'output_seq',
+    'casanovo_sequence'
+]]
+# rename the columns to specific names
+comparison_df = comparison_df.rename(
+    columns={
+        'scans': 'scan_num',
+        'output_seq': 'kaiko_seq',
+        'casanovo_sequence': 'casanovo_seq'
+    }
+)
 
+print(comparison_df[['target_seq', 'seq']])
 
-comparison_np = comparison_df.to_numpy()
-np.savetxt('C:\\Users\\leej179\\git\\kaiko_metaproteome\\kaiko_compare\\comparison_output\\comparison_file.txt', comparison_np, fmt="%s")
+# save the df into a text file called comparison_file.txt
+output_path = 'C:\\Users\\leej179\\git\\kaiko_metaproteome\\kaiko_compare\\comparison_output\\comparison_file.txt'
+comparison_df.to_csv(output_path, sep="\t")
