@@ -70,7 +70,6 @@ comparison_df = comparison_df.rename(
     }
 )
 
-print(comparison_df[['target_seq', 'seq']])
 
 # save the df into a text file called comparison_file.txt
 output_path = 'C:\\Users\\leej179\\git\\kaiko_metaproteome\\kaiko_compare\\comparison_output\\comparison_file.txt'
