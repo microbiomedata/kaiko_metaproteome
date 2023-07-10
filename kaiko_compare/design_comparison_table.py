@@ -46,10 +46,8 @@ casanovo_df = casanovo_df.rename(columns={'sequence': 'casanovo_sequence'})
 
 # merge the mgf df and kaiko df with scan number
 result = df.merge(kaiko_df, left_on="scans", right_on="scan")
-print(result)
 # merge the merged df with the casanovo df with scan index
 comparison_df = result.merge(casanovo_df, left_on="index", right_on="scan_index")
-print(comparison_df)
 # get the specific columns that are necessary
 comparison_df = comparison_df[[
     'scans',
