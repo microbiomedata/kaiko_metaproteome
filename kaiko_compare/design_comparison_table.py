@@ -7,9 +7,10 @@ from pyteomics import mgf
 from pyteomics import mztab
 import pandas as pd
 import numpy as np
+import sys
 
 # path below: path\to\mgf_file
-mgf_file_path = "C:\\Users\\leej179\\git\\kaiko_metaproteome\\Kaiko_volume\\Kaiko_input_files\\mgf_large_unit_test\\Biodiversity_A_cryptum_FeTSB_anaerobic_1_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969.mgf"
+mgf_file_path = sys.argv[1] # "C:\\Users\\leej179\\git\\kaiko_metaproteome\\Kaiko_volume\\Kaiko_input_files\\mgf_large_unit_test\\Biodiversity_A_cryptum_FeTSB_anaerobic_1_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969.mgf"
 # read a mgf file
 mgf_data = mgf.read(mgf_file_path, use_index=True)
 
@@ -25,12 +26,13 @@ df['pepmass'] = df['pepmass'].apply(lambda x: x[0])
 df['charge'] = df['charge'].apply(lambda x: int(x[0]))
 
 # path below: path\to\text_file
-kaiko_output_path = 'C:\\Users\\leej179\\git\\kaiko_metaproteome\\Kaiko_volume\\Kaiko_intermediate\\denovo_output\\mgf_large_unit_test\\Biodiversity_A_cryptum_FeTSB_anaerobic_1_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969_out.txt'
+kaiko_output_path = sys.argv[2] # 'C:\\Users\\leej179\\git\\kaiko_metaproteome\\Kaiko_volume\\Kaiko_intermediate\\denovo_output\\mgf_large_unit_test\\Biodiversity_A_cryptum_FeTSB_anaerobic_1_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969_out.txt'
 # read a kaiko output file
 kaiko_df = pd.read_csv(kaiko_output_path, delimiter="\t")
 
 # path below: path\to\mztab_file
-casanovo_output_path = "C:\\Users\\leej179\\git\\casanovo\\output\\casanovo_test_1_output.mztab"
+casanovo_output_path = sys.argv[3] # "C:\\Users\\leej179\\git\\casanovo\\output\\casanovo_test_1_output.mztab"
+print(sys.argv)
 # read a casanovo output mztab file
 tables = mztab.MzTab(casanovo_output_path)
 # get a PSM table
