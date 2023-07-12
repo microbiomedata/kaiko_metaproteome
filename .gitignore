@@ -26,6 +26,7 @@ Kaiko_volume/Kaiko_output/*
 !Kaiko_volume/Kaiko_stationary_files/ExtractUniRefMembers.py
 !Kaiko_volume/config.yaml
 !Kaiko_volume/Kaiko_input_files/mgf_large_unit_test/
+!Kaiko_volume/Kaiko_input_files/get_test_mgf.sh
 
 # pipeline outputs and inputs
 pipeline_input/*.MGF
