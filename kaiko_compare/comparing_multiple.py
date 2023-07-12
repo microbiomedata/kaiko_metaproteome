@@ -44,7 +44,7 @@ def get_mgf_path_by_filename(mgf_paths):
 def get_kaiko_path_by_mgf_filename(kaiko_paths):
     """map a mgf filename into a corresponding kaiko output path
     Args:
-        mgf_paths: list
+        kaiko_paths: list
             a list of mgf file paths
     Return:
         mgf_dict: dict
@@ -58,10 +58,6 @@ def get_kaiko_path_by_mgf_filename(kaiko_paths):
     for kaiko_path in kaiko_paths:
         kaiko_dict[os.path.splitext(os.path.basename(kaiko_path))[0][:-4]] = kaiko_path
     return kaiko_dict
-    # kaiko_name = None
-    # for kaiko_path in kaiko_files:
-    #     kaiko_name = os.path.basename(kaiko_path)
-    # return os.path.splitext(kaiko_name)[0][:-4]
     
 
 def get_casanovo_path_by_mgf_filename(casanovo_paths):
@@ -77,38 +73,24 @@ def get_casanovo_path_by_mgf_filename(casanovo_paths):
                 ...
             }
     """
-    csnv_dict = {}
+    casanovo_dict = {}
     for casanovo_path in casanovo_paths:
         tables = mztab.MzTab(casanovo_path)
         mgf_name_path = tables.metadata['ms_run[1]-location'][8:]
         mgf_name = os.path.splitext(os.path.basename(mgf_name_path))[0]
-        csnv_dict[mgf_name] = casanovo_path
-    return csnv_dict
-    # casanovo_name = None
-    # for casanovo_path in casanovo_files:
-    #     os.path.splitext(os.path.basename(mztab.MzTab(casanovo_path).metadata['ms_run[1]-location'][8:]))[0]
-    #     tables = mztab.MzTab(casanovo_path)
-    #     casanovo_name_path = tables.metadata['ms_run[1]-location'][8:]
-    #     casanovo_name = os.path.basename(casanovo_name_path)
-    # return os.path.splitext(casanovo_name)[0]
-    # mgf_dict['casanovo_names'] = [os.path.splitext(os.path.basename(mztab.MzTab(casanovo_path).metadata['ms_run[1]-location'][8:]))[0] for casanovo_path in casanovo_files]
+        casanovo_dict[mgf_name] = casanovo_path
+    return casanovo_dict
 
 
 if __name__ == '__main__':
-    # if get_mgf_names(mgf_files) == get_kaiko_names(kaiko_files) == get_casanovo_names(casanovo_files):
-    #     print('yes')
+    # get mgf path with filenames and store it in a variable
     mgf_path_by_mgf_name = get_mgf_path_by_filename(mgf_files)
-    # print(mgf_path_by_mgf_name)
+    # get kaiko path with filenames and store it in a variable
     kaiko_path_by_mgf_name = get_kaiko_path_by_mgf_filename(kaiko_files)
-    # print(kaiko_path_by_mgf_name)
+    # get casanovo path with filenames and store it in a variable
     casanovo_path_by_mgf_name = get_casanovo_path_by_mgf_filename(casanovo_files)
-    # print(casanovo_path_by_mgf_name)
 
-    # mgf 1,2,3
-    # kaiko 2,3,4
-    # casa 3,4,5
-    # (3, 3, 3)
-
+    # a for loop to find all of the common paths out of the 36 mgf files
     common_paths = []
     for mgf_name, mgf_path in mgf_path_by_mgf_name.items():
         if mgf_name in kaiko_path_by_mgf_name and mgf_name in casanovo_path_by_mgf_name:
@@ -117,7 +99,7 @@ if __name__ == '__main__':
                 kaiko_path_by_mgf_name[mgf_name],
                 casanovo_path_by_mgf_name[mgf_name]
             ))
-    # run
+    # finding the common paths and outputing them into separate columns in the compare dataframe
     dfs = []
     for (mgf_path, kaiko_path, casanovo_path) in common_paths:
         temp_df = aggregate_kaiko_casanovo(mgf_path, kaiko_path, casanovo_path, output_path)
@@ -126,7 +108,7 @@ if __name__ == '__main__':
         temp_df['casanovo'] = casanovo_path
         dfs.append(temp_df)
     compare_df = pd.concat(dfs, ignore_index=True)
-    print(compare_df)
-
+    
+    # save the dataframe into the output_path above
     compare_df.to_csv(output_path, index=None, sep='\t')
 
