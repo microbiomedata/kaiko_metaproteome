@@ -23,7 +23,7 @@ Download the following files to the ```Kaiko_volume/Kaiko_stationary_files``` fo
 
 2) [UniRef100 XML](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz) Large file, 100 Gb+.
 
-3) [NCBI Taxonomy dump](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz) Less than 1Gb.
+3) [NCBI Taxonomy dump](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.zip) Less than 1Gb.
 
 4) [Diamond search](https://github.com/bbuchfink/diamond/releases), choosing the appropriate system. If using Docker, get the Linux version.
 
