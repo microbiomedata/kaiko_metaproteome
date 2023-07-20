@@ -15,10 +15,10 @@ from pyteomics import mztab
 import os
 from design_comparison_table import aggregate_kaiko_casanovo
 
-mgf_files = glob.glob("C:\\Users\\leej179\\git\\kaiko_metaproteome\\Kaiko_volume\\Kaiko_input_files\\mgf_large_unit_test\\*.mgf")
-kaiko_files = glob.glob("C:\\Users\\leej179\\git\\kaiko_metaproteome_main\\Kaiko_volume\\Kaiko_intermediate\\denovo_output\\mgf_large_unit_test\\*.txt")
-casanovo_files = glob.glob("C:\\Users\\leej179\\git\\casanovo\\output\\*.mztab")
-output_path = 'C:\\Users\\leej179\\git\\kaiko_metaproteome\\kaiko_compare\\comparison_output\\comparison.tsv'
+mgf_files = glob.glob("path/to/mgf_file/*.mgf")
+kaiko_files = glob.glob("path/to/kaiko_output_file/*.txt")
+casanovo_files = glob.glob("path/to/casanovo_output_file/*.mztab")
+output_path = 'path/to/output_file/comparison.tsv'
 
 
 def get_mgf_path_by_filename(mgf_paths):
@@ -37,7 +37,6 @@ def get_mgf_path_by_filename(mgf_paths):
     mgf_dict = {}
     for mgf_path in mgf_paths:
         mgf_dict[os.path.splitext(os.path.basename(mgf_path))[0]] = mgf_path
-    # mgf_dict['mgf_names'] = [os.path.splitext(os.path.basename(mgf_path))[0] for mgf_path in mgf_files]
     return mgf_dict
 
 
