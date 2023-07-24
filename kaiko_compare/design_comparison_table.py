@@ -29,6 +29,7 @@ def aggregate_kaiko_casanovo(mgf_path, kaiko_path, casanovo_path, output_path):
     # path below: path\to\text_file
     # kaiko_output_path = sys.argv[2] # 'C:\\Users\\leej179\\git\\kaiko_metaproteome\\Kaiko_volume\\Kaiko_intermediate\\denovo_output\\mgf_large_unit_test\\Biodiversity_A_cryptum_FeTSB_anaerobic_1_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969_out.txt'
     # read a kaiko output file
+
     kaiko_df = pd.read_csv(kaiko_path, delimiter="\t")[['scan', 'target_seq', 'output_seq', 'exact_match']]
     for i in range(len(kaiko_df)):
         kaiko_seq = kaiko_df['output_seq'][i]
@@ -39,6 +40,7 @@ def aggregate_kaiko_casanovo(mgf_path, kaiko_path, casanovo_path, output_path):
     # path below: path\to\mztab_file
     # casanovo_output_path = sys.argv[3] # "C:\\Users\\leej179\\git\\casanovo\\output\\casanovo_test_1_output.mztab"
     # print(sys.argv)
+
     # read a casanovo output mztab file
     tables = mztab.MzTab(casanovo_path)
     # get a PSM table
@@ -125,7 +127,7 @@ def aggregate_kaiko_casanovo(mgf_path, kaiko_path, casanovo_path, output_path):
     # output_path = 'C:\\Users\\leej179\\git\\kaiko_metaproteome\\kaiko_compare\\comparison_output\\comparison_file.txt'
     comparison_df.to_csv(output_path, index=None, sep="\t")
     return comparison_df
-
+  
 
 if __name__ == '__main__':
     mgf_path = sys.argv[1]
