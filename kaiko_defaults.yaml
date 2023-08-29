@@ -12,10 +12,10 @@ diamond tally:
   mode: member
   n_protein_cutoff: 300000
   ncbi_taxa_folder: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa
-  ntops: -1
   pident: 100
 taxa to fasta:
+  coverage_target: 0.66
   kingdom_list: ''
-  ntops: 5
   ref_fasta: Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz
   taxa_key: TaxID
+  top_strains: 1
