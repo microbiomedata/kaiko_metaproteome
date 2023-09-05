@@ -44,50 +44,7 @@ def aggregate_fasta(ref_fasta, diamon_tally, output_fasta_path, coverage_target,
         taxids = taxids + [int(selected_taxid) for selected_taxid in fasta_addition['taxid'].values]
     
     with igzip.IndexedGzipFile(str(ref_fasta), index_file = str(ref_fasta_igzip_index)) as database_file:
-        write_taxa(database_file, taxids, output_fasta_path, index_s_path, index_path)
-
-    # fout_proteome = fout.parent / (fout.stem + '_proteome.txt')
-    # print("NCBI-TaxIDs:", taxids)
-    # proteome = get_taxa_proteome(ncbi_taxa_folder / 'uniref100_member_taxa_tbl.csv', taxids, fout_proteome)
-
-    # key_for_taxid = '{}='.format(taxa_key)
-    # print("Key for parsing Tax IDs:", key_for_taxid)
-    # # ofile = open(fout, 'w')
-    # ofile = fout.open('w')
-
-    # num_seqs = 0
-    # start_time = time.time()
-    # proteome = pd.read_csv(fout_proteome, sep = "\t", header = None)
-    # proteome = set(proteome[0].values)
-    
-    # with gzip.open(ref_fasta, 'rb') as file:
-    #     try:
-    #         is_selected = False
-    #         for bline in file:
-            
-    #             # if line.startswith('>UniRef'):
-    #             if bline[0] == 62:  # to find `>`
-    #                 num_seqs += 1
-    #                 line = bline.decode("utf-8")
-    #                 uid = line.split('>')[1].split(' ')[0]
-    #                 taxid = line.split(key_for_taxid)[1].split(' ')[0]
-    #                 if uid in ["", "N/A"]:
-    #                     is_selected = False
-    #                 elif uid in proteome:
-    #                     is_selected = True
-    #                     ofile.write(line)
-    #                 else:
-    #                     is_selected = False
-    #             else:
-    #                 if is_selected:
-    #                     line = bline.decode("utf-8")
-    #                     ofile.write(line)
-    #             if (num_seqs % 1000000) == 0:
-    #                 print("{}M sequences has been parsed. {:.1f}min".format(num_seqs//1e6, (time.time()-start_time)/60))
-    #     except Exception as e:
-    #         print(line, e)
-
-    # ofile.close()
+        write_taxa(database_file, taxids, output_fasta_path, index_s_path, index_path)    
 
 
 def get_taxa_proteome(member_tbl_file, unique_taxids, fout_proteome):
@@ -95,9 +52,10 @@ def get_taxa_proteome(member_tbl_file, unique_taxids, fout_proteome):
     unique_taxids = set([str(x) for x in unique_taxids])
 
     print('Collecting protein names in ' + fout_proteome.name + '\n')
-    nchunks = 1
+    nchunks = 0
     output = fout_proteome.open('w')
     for chunk in pd.read_csv(member_tbl_file, chunksize=chunksize):
+        print(nchunks)
         proteome_index = [any([x in set(member_taxa.split(':')) for x in unique_taxids]) for member_taxa in chunk['members']]
         proteome = chunk[proteome_index]['uid'].values.tolist()
         for protein in proteome:
@@ -119,7 +77,7 @@ def rank_to_lineage(df):
 
 EXCLUDED_RANKS = ['family','order','class','phylum','kingdom','superkingdom']
 
-def write_taxa(database_file, taxa_list, output_fasta_path, index_s_path, index_path, max_ram_lines = 10000):
+def write_taxa(database_file, taxa_list, output_fasta_path, index_s_path, index_path, max_ram_lines = 8000):
     index_s = pd.read_csv(index_s_path, sep = '\t', header = None)
     index_s.index = index_s[0]
     index = index_path.open('r')
@@ -143,12 +101,14 @@ def write_taxa(database_file, taxa_list, output_fasta_path, index_s_path, index_
 
     with output_fasta_path.open('a') as output_fasta:
         lines = []
+        count = 0
         start_time = time.perf_counter()
         for pos in all_pos:
             lines = lines + get_single_protein(database_file, pos)
 
             if (len(lines) > max_ram_lines):
-                print("Writing to FASTA")
+                print("Writing to FASTA" + str(count))
+                count = count + 1
                 for line in lines:
                     output_fasta.write(line)
                 lines = []
@@ -174,29 +134,31 @@ def get_single_protein(database_file, pos):
             line = line.decode("utf-8")
     return(lines)
 
-# from pathlib import Path, PureWindowsPath
-# import indexed_gzip as igzip
-# import time
+from pathlib import Path, PureWindowsPath
+import indexed_gzip as igzip
+import time
 
 
-# ref_fasta = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz'))
-# ref_fasta_igzip_index = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx'))
-# output_fasta_path = Path(PureWindowsPath('Kaiko_volume/testing_together.FASTA'))
-# index_s_path = Path('Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt')
-# index_path = Path('Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt')
+ref_fasta = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz'))
+ref_fasta_igzip_index = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx'))
+output_fasta_path = Path(PureWindowsPath('Kaiko_volume/ecoli_test_sept.FASTA'))
+index_s_path = Path('Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt')
+index_path = Path('Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt')
 
-# with igzip.IndexedGzipFile(str(ref_fasta), index_file = str(ref_fasta_igzip_index)) as file:
-#     write_taxa(file, ['48', '9823', '562'], output_fasta_path, index_s_path, index_path)
+with igzip.IndexedGzipFile(str(ref_fasta), index_file = str(ref_fasta_igzip_index)) as file:
+    write_taxa(file, ['562'], output_fasta_path, index_s_path, index_path)
 
 
 # prefix = "S1_NM0001_NMDC_MixedCommunities_R3_mgf"
-# diamond_search_out = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_diamond_search_output.dmd")
-# kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction_top_taxa.csv")
-# ncbi_taxa_folder = Path(PureWindowsPath("Kaiko_volume/Kaiko_stationary_files/ncbi_taxa").as_posix())
-# nprot = '{:.5e}'.format(int(117000))
-# kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{1}_strains.csv')
-# ref_fasta = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz').as_posix())
-# kaiko_final_output = Path("Kaiko_volume/Kaiko_output/" + prefix + "_kaiko_output.fasta")
+prefix = "Kansas_soil_no_gly"
+diamond_search_out = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_diamond_search_output.dmd")
+kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction_top_taxa.csv")
+ncbi_taxa_folder = Path(PureWindowsPath("Kaiko_volume/Kaiko_stationary_files/ncbi_taxa").as_posix())
+nprot = '{:.5e}'.format(int(151000))
+kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{1}_strains.csv')
+ref_fasta = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz').as_posix())
+kaiko_final_output = Path("Kaiko_volume/Kaiko_output/" + prefix + "_kaiko_output.fasta")
+taxa_member_path = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/ncbi_taxa/uniref100_member_taxa_tbl.csv'))
 
 # aggregate_fasta(ref_fasta,
 #                 kaiko_tally,
@@ -206,5 +168,7 @@ def get_single_protein(database_file, pos):
 #                 ncbi_taxa_folder,
 #                 'TaxID',
 #                 [])
+
+# get_taxa_proteome(taxa_member_path, [562], Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/ecoli_sanity_check.txt')))
 
 # aggregate_fasta(ref_fasta, diamon_tally, fout, coverage_target, top_strains, ncbi_taxa_folder, taxa_key, kingdom_list = [])
