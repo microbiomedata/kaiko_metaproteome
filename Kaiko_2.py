@@ -46,7 +46,8 @@ def combine_denovo_output(directory, prefix, selection = 0.25):
 
         samples += [summary]
 
-    combined_fasta = Path('Kaiko_volume/Kaiko_intermediate/' + prefix + '_combined_denovo.fasta')
+    combined_fasta = directory / (prefix + '_combined_denovo.fasta')
+    # Path('Kaiko_volume/Kaiko_intermediate/' + prefix + '_combined_denovo.fasta')
 
     for index in range(len(samples)):
         summary = samples[index]

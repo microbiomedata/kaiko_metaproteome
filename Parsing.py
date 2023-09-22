@@ -7,6 +7,8 @@ config = {}
 
 # config['DEFAULT'] = {'prefix' : ""}
 
+config['general'] = {'output_dir' : 'Kaiko_volume'}
+
 config['denovo'] = {'topk' : False, 
                     'multi_decode' : True,
                     'beam_search' : True,
@@ -24,6 +26,7 @@ config['diamond tally'] = {'diamond_folder' : 'Kaiko_volume/Kaiko_stationary_fil
                            'mode' : 'member',
                           #  'fout' : 'Kaiko_volume/Kaiko_intermediate/kaiko_prediction_top_taxa.csv',
                           #  'diamond_output' : "Kaiko_volume/Kaiko_intermediate/denovo_output/diamond_search_output.dmd",
+                           'diamond_database' : "Kaiko_volume/Kaiko_stationary_files/uniref100",
                            'n_protein_cutoff' : 300000,
                            'pident' : 100,
                            'cached' : False}
@@ -32,7 +35,10 @@ config['diamond tally'] = {'diamond_folder' : 'Kaiko_volume/Kaiko_stationary_fil
 config['taxa to fasta'] = {'ref_fasta' : "Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz",
                           #  'diamond_tally' : "Kaiko_volume/Kaiko_intermediate/kaiko_prediction_top_taxa.csv",
                           #  'fout' : "Kaiko_volume/Kaiko_output/kaiko_output.fasta",
-                           'coverage_target' : 0.66,
+                           'gz_index' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx',
+                           'proteome_index' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt',
+                           'proteome_index_s' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt',
+                           'coverage_target' : 0.48,
                            'top_strains' : 1,
                            'taxa_key' : "TaxID",
                            'kingdom_list' : ""}

@@ -8,14 +8,20 @@ denovo:
   topk: false
 diamond tally:
   cached: false
+  diamond_database: Kaiko_volume/Kaiko_stationary_files/uniref100
   diamond_folder: Kaiko_volume/Kaiko_stationary_files/diamond
   mode: member
   n_protein_cutoff: 300000
   ncbi_taxa_folder: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa
   pident: 100
+general:
+  output_dir: Kaiko_volume
 taxa to fasta:
-  coverage_target: 0.66
+  coverage_target: 0.48
+  gz_index: Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx
   kingdom_list: ''
+  proteome_index: Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt
+  proteome_index_s: Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt
   ref_fasta: Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz
   taxa_key: TaxID
   top_strains: 1

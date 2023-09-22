@@ -21,7 +21,6 @@ args = parser.parse_args()
 ## Parsing
 kaiko_defaults_path = Path('kaiko_defaults.yaml')
 config = yaml.safe_load(kaiko_defaults_path.open())
-
 assert args.config is not None, "Please provide a config file with the spectrum path (mgf files). Use flag --config to pass the path. See the tutorial for more information."
 user_config_path = Path(args.config)
 assert user_config_path.exists(), "File " + str(user_config_path.absolute()) + " does not exist."
@@ -37,14 +36,24 @@ for section in config_user.keys():
 ## as they are compatible in Windows, Linux, and Mac.
 working_dir = Path(Path('.').resolve().as_posix())
 mgf_dir = Path(PureWindowsPath(config['denovo']['mgf_dir']).as_posix())
+output_dir = Path(PureWindowsPath(config['general']['output_dir']).as_posix())
 ncbi_taxa_folder = Path(PureWindowsPath(config['diamond tally']['ncbi_taxa_folder']).as_posix())
 ref_fasta = Path(PureWindowsPath(config['taxa to fasta']['ref_fasta']).as_posix())
 diamond_folder = Path(PureWindowsPath(config['diamond tally']['diamond_folder']).as_posix())
+diamond_database = Path(PureWindowsPath(config['diamond tally']['diamond_database']).as_posix())
+ref_fasta_igzip_index = Path(PureWindowsPath(config['taxa to fasta']['gz_index']).as_posix())
+index_path = Path(PureWindowsPath(config['taxa to fasta']['proteome_index']).as_posix())
+index_s_path = Path(PureWindowsPath(config['taxa to fasta']['proteome_index_s']).as_posix())
 prefix = mgf_dir.name
 
-denovout_dir = Path('Kaiko_volume/Kaiko_intermediate/denovo_output/' + prefix)
-if not denovout_dir.exists():
-    denovout_dir.mkdir()
+
+## Creating drectories in output folder:
+denovout_dir = output_dir / ('Kaiko_intermediate/denovo_output/' + prefix)
+intermediate_dir = output_dir / ("Kaiko_intermediate/" + prefix)
+final_dir = output_dir / ('Kaiko_output/' + prefix)
+denovout_dir.mkdir(parents=True, exist_ok=True)
+intermediate_dir.mkdir(parents=True, exist_ok=True)
+final_dir.mkdir(parents=True, exist_ok=True)
 
 ## Step 1. Run Denovo using subprocess.
 kaiko_1_args = ["python", "src/kaiko_main.py", 
@@ -78,8 +87,8 @@ print("\n Combinining denovo output\n")
 
 combine_denovo_output(denovout_dir, prefix)
 
-denovo_combined_fasta = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_combined_denovo.fasta")
-diamond_search_out = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_diamond_search_output.dmd")
+denovo_combined_fasta = denovout_dir / (prefix + '_combined_denovo.fasta')
+diamond_search_out = intermediate_dir / (prefix + "_diamond_search_output.dmd")
 
 ## Step 3. Passing to diamond
 if os.name == 'posix':
@@ -88,7 +97,7 @@ else:
     diamond_args = ["diamond"]
     
 diamond_args = diamond_args + ["blastp", "-d",
-                "../uniref100", "--min-score", "1",
+                diamond_database.resolve().as_posix(), "--min-score", "1",
                 "-q", denovo_combined_fasta.resolve().as_posix(), "-o",
                 diamond_search_out.resolve().as_posix(), "-f", "6", "qseqid", 
                 "stitle", "pident", "evalue", "mismatch"]
@@ -96,7 +105,6 @@ diamond_args = diamond_args + ["blastp", "-d",
 if not config['diamond tally']['cached']:
     print("DeNovo: Running the following command:\n")
     print(" ".join(diamond_args) + "\n")    
-    # os.chdir("Kaiko_volume/Kaiko_stationary_files/diamond-2.0.15")
     os.chdir(diamond_folder)
     print(os.getcwd())
     os.system(" ".join(diamond_args))
@@ -104,7 +112,7 @@ if not config['diamond tally']['cached']:
 
 nprot = '{:.5e}'.format(int(config['diamond tally']['n_protein_cutoff']))
 top_strains = str(config['taxa to fasta']['top_strains'])
-kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{top_strains}_strains.csv')
+kaiko_tally = intermediate_dir / (prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{top_strains}_strains.csv')
 
 # Step 4. Tallying the diamond results
 run_diamond_tally(diamond_search_out, 
@@ -125,15 +133,14 @@ else:
     kingdom_list = []
 
 coverage_target = str(config['taxa to fasta']['coverage_target'])
-kaiko_final_output = Path("Kaiko_volume/Kaiko_output/" + prefix + f'_kaiko_fasta_coverage_{coverage_target}_nprot_{nprot}_top{top_strains}_strains.fasta')
+kaiko_final_output = final_dir / (prefix + f'_kaiko_fasta_coverage_{coverage_target}_nprot_{nprot}_top{top_strains}_strains.fasta')
 
 aggregate_fasta(ref_fasta,
                 kaiko_tally,
                 kaiko_final_output,
                 config['taxa to fasta']['coverage_target'],
                 int(config['taxa to fasta']['top_strains']),
-                ncbi_taxa_folder,
-                config['taxa to fasta']['taxa_key'],
+                ref_fasta_igzip_index, index_path, index_s_path,
                 kingdom_list)
 
 

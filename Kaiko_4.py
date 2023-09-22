@@ -3,10 +3,10 @@ import time
 import pandas as pd
 import numpy as np
 import os
-
+import indexed_gzip as igzip
 
 # @profile
-def aggregate_fasta(ref_fasta, diamon_tally, output_fasta_path, coverage_target, top_strains, ncbi_taxa_folder, taxa_key, kingdom_list = []):
+def aggregate_fasta(ref_fasta, diamon_tally, output_fasta_path, coverage_target, top_strains, ref_fasta_igzip_index, index_path, index_s_path, kingdom_list = []):
     """
     python -u ExtractProteinSequenceByTaxID.py --ref_fasta uniref100.fasta.gz --taxafile Weintraub_kaiko_25p_UniRef100_toptaxa.csv --fout Weintraub_kaiko_25p_UniRef100_Bacteria_top100.fasta --ntops 100 -l Bacteria --key TaxID
     """
@@ -134,31 +134,31 @@ def get_single_protein(database_file, pos):
             line = line.decode("utf-8")
     return(lines)
 
-from pathlib import Path, PureWindowsPath
-import indexed_gzip as igzip
-import time
+# from pathlib import Path, PureWindowsPath
+# import indexed_gzip as igzip
+# import time
 
 
-ref_fasta = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz'))
-ref_fasta_igzip_index = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx'))
-output_fasta_path = Path(PureWindowsPath('Kaiko_volume/ecoli_test_sept.FASTA'))
-index_s_path = Path('Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt')
-index_path = Path('Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt')
+# ref_fasta = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz'))
+# ref_fasta_igzip_index = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx'))
+# # output_fasta_path = Path(PureWindowsPath('Kaiko_volume/ecoli_test_sept.FASTA'))
+# index_s_path = Path('Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt')
+# index_path = Path('Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt')
 
-with igzip.IndexedGzipFile(str(ref_fasta), index_file = str(ref_fasta_igzip_index)) as file:
-    write_taxa(file, ['562'], output_fasta_path, index_s_path, index_path)
+# # with igzip.IndexedGzipFile(str(ref_fasta), index_file = str(ref_fasta_igzip_index)) as file:
+# #     write_taxa(file, ['562'], output_fasta_path, index_s_path, index_path)
 
 
-# prefix = "S1_NM0001_NMDC_MixedCommunities_R3_mgf"
-prefix = "Kansas_soil_no_gly"
-diamond_search_out = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_diamond_search_output.dmd")
-kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction_top_taxa.csv")
-ncbi_taxa_folder = Path(PureWindowsPath("Kaiko_volume/Kaiko_stationary_files/ncbi_taxa").as_posix())
-nprot = '{:.5e}'.format(int(151000))
-kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{1}_strains.csv')
-ref_fasta = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz').as_posix())
-kaiko_final_output = Path("Kaiko_volume/Kaiko_output/" + prefix + "_kaiko_output.fasta")
-taxa_member_path = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/ncbi_taxa/uniref100_member_taxa_tbl.csv'))
+# # prefix = "S1_NM0001_NMDC_MixedCommunities_R3_mgf"
+# prefix = "Kansas_soil_no_gly"
+# diamond_search_out = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_diamond_search_output.dmd")
+# kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction_top_taxa.csv")
+# ncbi_taxa_folder = Path(PureWindowsPath("Kaiko_volume/Kaiko_stationary_files/ncbi_taxa").as_posix())
+# nprot = '{:.5e}'.format(int(151000))
+# kaiko_tally = Path("Kaiko_volume/Kaiko_intermediate/" + prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{1}_strains.csv')
+# ref_fasta = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz').as_posix())
+# kaiko_final_output = Path("Kaiko_volume/Kaiko_output/" + prefix + "_kaiko_output.fasta")
+# taxa_member_path = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/ncbi_taxa/uniref100_member_taxa_tbl.csv'))
 
 # aggregate_fasta(ref_fasta,
 #                 kaiko_tally,
