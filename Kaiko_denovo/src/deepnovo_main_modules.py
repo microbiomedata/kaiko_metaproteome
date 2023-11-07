@@ -175,8 +175,10 @@ def read_spectra(file_handle, data_format, spectra_locations):
 
     if ('SCANS' in header_dict.keys()):
       scan = header_dict['SCANS'].split('\n')[0]
-    else:
+    elif ('scan=' in header_dict['TITLE']):
       scan = 'scan' + header_dict['TITLE'].split('scan=')[1].split('\n')[0]
+    else:
+      scan = 'scan_' + header_dict['TITLE'].split('\n')[0]
 
     if ('SEQ' in header_dict.keys()):
       raw_sequence = header_dict['SEQ'].split('\n')[0]

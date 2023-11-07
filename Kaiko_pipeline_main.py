@@ -48,7 +48,7 @@ prefix = mgf_dir.name
 
 
 ## Creating drectories in output folder:
-denovout_dir = output_dir / ('Kaiko_intermediate/denovo_output/' + prefix)
+denovout_dir = output_dir / ('Kaiko_intermediate/' + prefix + '/denovo_output/')
 intermediate_dir = output_dir / ("Kaiko_intermediate/" + prefix)
 final_dir = output_dir / ('Kaiko_output/' + prefix)
 denovout_dir.mkdir(parents=True, exist_ok=True)
