@@ -9,7 +9,7 @@ from pathlib import Path, PureWindowsPath
 
 
 # @profile    
-def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, fout, pident, n_protein_cutoff):
+def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, fout, pident, n_protein_cutoff, db_pattern):
     detailed_fout = fout.parent / (re.sub("_kaiko_prediction_.*.csv$", "", fout.name) + '_detailed.csv')
     taxa_stats_path = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100_member_stats_with_lineage.txt'))
     taxa_stats = pd.read_csv(taxa_stats_path, sep = '\t')
@@ -41,7 +41,7 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
         ############################################################
         print("Filtering by quality and taxa...")
         filtered_dmd = dmd_filter(dmd, filterby=filterby)
-        filtered_dmd = collect_taxid(filtered_dmd)
+        filtered_dmd = collect_taxid(filtered_dmd, db_pattern)
         filtered_dmd['uniref_id'] = [i[0] for i in filtered_dmd.uniref_seq.str.split(" ",1)]
 
         ############################################################
@@ -57,30 +57,39 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
         ############################################################
         print("Retrieving UniRef100 representative taxa and members...")
         unique_unirefs = set(filtered_dmd.uniref_id.drop_duplicates())
-        taxa_member_tbl = get_taxa_members(ncbi_taxa_folder / 'uniref100_member_taxa_tbl.csv',
-                                           unique_unirefs)
-        
-        ############################################################
-        # merge
-        ############################################################
-        print("Adding taxa members...")
-        merged = filtered_dmd.merge(taxa_member_tbl, left_on="uniref_id", right_on="uid", how="inner")
-        print("  Final table size:{}".format(merged.shape))
-        
-        if merged.shape[0]!=filtered_dmd.shape[0]:
-            print("[WARN] You might use the different version of UniRef100.fasta and .xml")
-        
-        # get the member taxa of each (scan, uid)
-        unique_members = []
-        scanids = merged.scans.tolist()
-        uids = merged.uid.tolist()
-        commons = merged.common_taxa.tolist()
-        for ii, members in enumerate(merged.members.str.split(":").tolist()):
-            for mm in members:
-                unique_members.append({"scan":scanids[ii], "uid":uids[ii], "member_taxa":int(mm), "common_taxa":int(commons[ii])})
-        print("  #members:{}".format(len(unique_members)))
-        members_df = pd.DataFrame(unique_members)
+        if db_pattern == 'TaxID':
+            taxa_member_tbl = get_taxa_members(ncbi_taxa_folder / 'uniref100_member_taxa_tbl.csv',
+                                            unique_unirefs)  
+            ############################################################
+            # merge
+            ############################################################
+            print("Adding taxa members...")
+            merged = filtered_dmd.merge(taxa_member_tbl, left_on="uniref_id", right_on="uid", how="inner")
+            print("  Final table size:{}".format(merged.shape))
+            
+            if merged.shape[0]!=filtered_dmd.shape[0]:
+                print("[WARN] You might use the different version of UniRef100.fasta and .xml")
+            
+            # get the member taxa of each (scan, uid)
+            unique_members = []
+            scanids = merged.scans.tolist()
+            uids = merged.uid.tolist()
+            commons = merged.common_taxa.tolist()
+            for ii, members in enumerate(merged.members.str.split(":").tolist()):
+                for mm in members:
+                    unique_members.append({"scan":scanids[ii], "uid":uids[ii], "member_taxa":int(mm), "common_taxa":int(commons[ii])})
+            print("  #members:{}".format(len(unique_members)))
+            members_df = pd.DataFrame(unique_members)
 
+        elif db_pattern == 'OX':
+            members_df = filtered_dmd[['scans']]
+            members_df['scan'] = members_df['scans']
+            members_df['uid'] = [uniref_id.split('|')[1] for uniref_id in filtered_dmd['uniref_id']]
+            members_df['protein'] = members_df['uid']
+            members_df['member_taxa'] = filtered_dmd['taxid']
+            members_df['common_taxa'] = members_df['member_taxa']
+            members_df = pd.DataFrame(members_df)
+ 
         ############################################################
         # top-rank taxa
         ############################################################
@@ -92,7 +101,7 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
         detailed_output = detailed_output.merge(taxa_stats, left_on = taxa_col, right_on = 'taxid', how = 'left')
         detailed_output.to_csv(detailed_fout, index = False)
     else:
-        print("Loading |scan|protein|taxa| table" + detailed_fout.name + "\n")
+        print("Loading |scan|protein|taxa| table " + detailed_fout.name + "\n")
         detailed_output = pd.read_csv(detailed_fout)
 
     # detailed_output = detailed_output[detailed_output['genus'] == detailed_output['genus']]
@@ -203,8 +212,8 @@ def dmd_filter(dmd, filterby={}):
     else:
         return dmd
 
-def collect_taxid(filtered_dmd):
-    filtered_dmd['taxid'] = filtered_dmd.uniref_seq.str.extract('^.+? TaxID=(\d*)\s?')
+def collect_taxid(filtered_dmd, db_pattern = 'TaxID'):
+    filtered_dmd['taxid'] = filtered_dmd.uniref_seq.str.extract(f'^.+? {db_pattern}=(\d*)\s?')
     # filtered_dmd['taxid'] = filtered_dmd.uniref_seq.str.extract('^.+? OX=(\d*)\s?')
 
     # drop the irrelevant

@@ -10,7 +10,8 @@ from s3path import S3Path
 
 from Kaiko_4 import aggregate_fasta
 from Kaiko_3 import run_diamond_tally
-from Kaiko_2 import combine_denovo_output
+from Kaiko_2 import prepare_denovo_command, combine_denovo_output
+from Kaiko_dms_functions import get_request_dataset_paths, generate_mgf_files
 
 parser = argparse.ArgumentParser()
 
@@ -44,8 +45,13 @@ diamond_database = Path(PureWindowsPath(config['diamond tally']['diamond_databas
 ref_fasta_igzip_index = Path(PureWindowsPath(config['taxa to fasta']['gz_index']).as_posix())
 index_path = Path(PureWindowsPath(config['taxa to fasta']['proteome_index']).as_posix())
 index_s_path = Path(PureWindowsPath(config['taxa to fasta']['proteome_index_s']).as_posix())
-prefix = mgf_dir.name
 
+ref_proteome_log = Path(PureWindowsPath(config['taxa to fasta']['ref_proteome_log']).as_posix())
+prefix = mgf_dir.name
+if config['diamond tally']['db_pattern'] == 'TaxID':
+    mode = 'uniref100'
+elif config['diamond tally']['db_pattern'] == 'OX':
+    mode = 'ref_prot'
 
 ## Creating drectories in output folder:
 denovout_dir = output_dir / ('Kaiko_intermediate/' + prefix + '/denovo_output/')
@@ -55,54 +61,55 @@ denovout_dir.mkdir(parents=True, exist_ok=True)
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 final_dir.mkdir(parents=True, exist_ok=True)
 
-## Step 1. Run Denovo using subprocess.
-kaiko_1_args = ["python", "src/kaiko_main.py", 
-                "--mgf_dir", mgf_dir.resolve(), 
-                "--train_dir", "model/",
-                "--decode_dir", denovout_dir.resolve(),
-                "--profile", config['denovo']['profile']]
-
-if config['denovo']['topk']:
-    kaiko_1_args = kaiko_1_args + ["--topk"]
-if config['denovo']['multi_decode']:
-    kaiko_1_args = kaiko_1_args + ["--multi_decode"]
-if config['denovo']['beam_search']:
-    kaiko_1_args = kaiko_1_args + ["--beam_search", "--beam_size", config['denovo']['beam_size']]     
-
-print("DeNovo: Running the following command:\n")
-for i in range(len(kaiko_1_args)):
-    kaiko_1_args[i] = str(kaiko_1_args[i])
-
 if not config['denovo']['cached']:
-    print(" ".join(kaiko_1_args) + "\n")
-    subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
-    # subprocess.call(kaiko_1_args, cwd = "Kaiko_denovo")
+    
+    if config['denovo']['dms_analysis_job'] != '':
+        print('Gathering paths from dms')
+        mzml_paths = get_request_dataset_paths(config['denovo']['dms_analysis_job'])
+        for mzml_path in mzml_paths:
+            print(f'Converting file {str(mzml_path.name)}')
+            
+            individual_mgf_dir = str(mzml_path.name).split('.mzML.gz')[0]
+            individual_mgf_dir = mgf_dir / individual_mgf_dir
+            generate_mgf_files(str(mzml_path.parent), dest_dir = str(individual_mgf_dir.resolve()), dataset_pattern = str(mzml_path.name), gzipped = True)
 
-if (config['denovo'])['profile']:
+            kaiko_1_args = prepare_denovo_command(individual_mgf_dir, denovout_dir, config)
+            print(" ".join(kaiko_1_args) + "\n")
+            subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
+            if not config['denovo']['keep_dms_locally']:
+                print(f'Removing the locally stored coverted spectra {str(individual_mgf_dir)}.mgf')
+                os.remove(individual_mgf_dir / f'{str(individual_mgf_dir)}.mgf')
+    else:
+        kaiko_1_args = prepare_denovo_command(mgf_dir, denovout_dir, config)
+        print(" ".join(kaiko_1_args) + "\n")
+        subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
+        
+
+if (config['denovo']['profile']):
     profiler = cProfile.Profile()
     profiler.enable()
-
-## Step 2. Combine into fasta
-print("\n Combinining denovo output\n")
-
-combine_denovo_output(denovout_dir, prefix)
 
 denovo_combined_fasta = denovout_dir / (prefix + '_combined_denovo.fasta')
 diamond_search_out = intermediate_dir / (prefix + "_diamond_search_output.dmd")
 
-## Step 3. Passing to diamond
-if os.name == 'posix':
-    diamond_args = ["./diamond"]
-else:
-    diamond_args = ["diamond"]
-    
-diamond_args = diamond_args + ["blastp", "-d",
-                diamond_database.resolve().as_posix(), "--min-score", "1",
-                "-q", denovo_combined_fasta.resolve().as_posix(), "-o",
-                diamond_search_out.resolve().as_posix(), "-f", "6", "qseqid", 
-                "stitle", "pident", "evalue", "mismatch"]
-
 if not config['diamond tally']['cached']:
+    ## Step 2. Combine into fasta
+    print("\n Combinining denovo output\n")
+
+    combine_denovo_output(denovout_dir, prefix)
+    
+    ## Step 3. Passing to diamond
+    if os.name == 'posix':
+        diamond_args = ["./diamond"]
+    else:
+        diamond_args = ["diamond"]
+        
+    diamond_args = diamond_args + ["blastp", "-d",
+                    diamond_database.resolve().as_posix(), "--min-score", "1",
+                    "-q", denovo_combined_fasta.resolve().as_posix(), "-o",
+                    diamond_search_out.resolve().as_posix(), "-f", "6", "qseqid", 
+                    "stitle", "pident", "evalue", "mismatch"]
+
     print("DeNovo: Running the following command:\n")
     print(" ".join(diamond_args) + "\n")    
     os.chdir(diamond_folder)
@@ -121,7 +128,8 @@ run_diamond_tally(diamond_search_out,
                   config['diamond tally']['mode'], 
                   kaiko_tally, 
                   float(config['diamond tally']['pident']),
-                  int(config['diamond tally']['n_protein_cutoff']))
+                  int(config['diamond tally']['n_protein_cutoff']),
+                  config['diamond tally']['db_pattern'])
 
 
 ## Step 5. Putting together the final fasta file.
@@ -136,12 +144,13 @@ coverage_target = str(config['taxa to fasta']['coverage_target'])
 kaiko_final_output = final_dir / (prefix + f'_kaiko_fasta_coverage_{coverage_target}_nprot_{nprot}_top{top_strains}_strains.fasta')
 
 aggregate_fasta(ref_fasta,
+                ref_proteome_log,
                 kaiko_tally,
                 kaiko_final_output,
                 config['taxa to fasta']['coverage_target'],
                 int(config['taxa to fasta']['top_strains']),
                 ref_fasta_igzip_index, index_path, index_s_path,
-                kingdom_list)
+                kingdom_list, mode)
 
 
 if (config['denovo'])['profile']:

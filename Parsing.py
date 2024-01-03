@@ -15,6 +15,8 @@ config['denovo'] = {'topk' : False,
                     'profile' : False,
                     'beam_size' : 5,
                     'mgf_dir' : 'Kaiko_volume/Kaiko_input_files/',
+                    'dms_analysis_job' : '',
+                    'keep_dms_locally' : False,
                     'cached' : False,
                     # 'train_dir' : 'model/'
                     # 'decode_dir' : 'Kaiko_volume/Kaiko_intermediate/denovo_output/',
@@ -29,7 +31,8 @@ config['diamond tally'] = {'diamond_folder' : 'Kaiko_volume/Kaiko_stationary_fil
                            'diamond_database' : "Kaiko_volume/Kaiko_stationary_files/uniref100",
                            'n_protein_cutoff' : 300000,
                            'pident' : 100,
-                           'cached' : False}
+                           'cached' : False,
+                           'db_pattern' : 'TaxID'}
 
 
 config['taxa to fasta'] = {'ref_fasta' : "Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz",
@@ -38,6 +41,7 @@ config['taxa to fasta'] = {'ref_fasta' : "Kaiko_volume/Kaiko_stationary_files/un
                            'gz_index' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx',
                            'proteome_index' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt',
                            'proteome_index_s' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt',
+                           'ref_proteome_log' : 'Kaiko_volume/Kaiko_stationary_files/Reference Proteomes/database_log.xlsx',
                            'coverage_target' : 0.48,
                            'top_strains' : 1,
                            'taxa_key' : "TaxID",

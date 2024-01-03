@@ -5,12 +5,15 @@ import numpy as np
 import os
 import indexed_gzip as igzip
 
+from pathlib import PureWindowsPath, Path
+
 # @profile
-def aggregate_fasta(ref_fasta, diamon_tally, output_fasta_path, coverage_target, top_strains, ref_fasta_igzip_index, index_path, index_s_path, kingdom_list = []):
+def aggregate_fasta(ref_fasta, ref_proteome_log, kaiko_tally, output_fasta_path, coverage_target, top_strains, 
+                    ref_fasta_igzip_index, index_path, index_s_path, kingdom_list, mode):
     """
     python -u ExtractProteinSequenceByTaxID.py --ref_fasta uniref100.fasta.gz --taxafile Weintraub_kaiko_25p_UniRef100_toptaxa.csv --fout Weintraub_kaiko_25p_UniRef100_Bacteria_top100.fasta --ntops 100 -l Bacteria --key TaxID
     """
-    df = pd.read_csv(diamon_tally)
+    df = pd.read_csv(kaiko_tally)
     # df, _ = rank_to_lineage(df)
 
     rank_conditions = ~df['rank'].isin(EXCLUDED_RANKS)
@@ -42,9 +45,14 @@ def aggregate_fasta(ref_fasta, diamon_tally, output_fasta_path, coverage_target,
         else:
             fasta_addition = fasta_addition[primary_species].nlargest(top_strains, 'hits')
         taxids = taxids + [int(selected_taxid) for selected_taxid in fasta_addition['taxid'].values]
-    
-    with igzip.IndexedGzipFile(str(ref_fasta), index_file = str(ref_fasta_igzip_index)) as database_file:
-        write_taxa(database_file, taxids, output_fasta_path, index_s_path, index_path)    
+
+    print(f'collecting fasta from {len(taxids)} taxa\n')
+
+    if mode == 'uniref100':
+        with igzip.IndexedGzipFile(str(ref_fasta), index_file = str(ref_fasta_igzip_index)) as database_file:
+            write_taxa(database_file, taxids, output_fasta_path, index_s_path, index_path)
+    elif mode == 'ref_prot':
+        write_taxa_ref_proteome(ref_proteome_log, ref_fasta, taxids, output_fasta_path)
 
 
 def get_taxa_proteome(member_tbl_file, unique_taxids, fout_proteome):
@@ -116,6 +124,23 @@ def write_taxa(database_file, taxa_list, output_fasta_path, index_s_path, index_
         for line in lines:
             output_fasta.write(line)
         print(time.perf_counter() - start_time)
+
+def write_taxa_ref_proteome(ref_proteome_log, ref_fasta, taxids, output_fasta_path, max_ram_lines = 8000):
+    proteome_df = pd.read_excel(ref_proteome_log)
+    proteome_df.index = proteome_df['Organism Id']
+    total_proteins = 0
+    with output_fasta_path.open('w') as output_fasta:
+        for taxid in taxids:
+            proteome_id = proteome_df.loc[taxid]['Proteome Id']
+            fasta_path = ref_fasta / f'{proteome_id}_taxaid_{taxid}.fasta'
+            with fasta_path.open() as taxa_proteome:
+                for line in taxa_proteome:
+                    if '>' in line:
+                        total_proteins = total_proteins + 1
+                    output_fasta.write(line)
+    print(f'Finished writing total of {total_proteins} proteins')
+        
+        
 
 def get_single_protein(database_file, pos):
     database_file.seek(pos)

@@ -1,0 +1,19 @@
+denovo:
+  multi_decode: true
+  mgf_dir: Kaiko_volume/Kaiko_input_files/DMS_datasets_31953
+  cached : False
+  topk : False
+  beam_size : 5
+  dms_analysis_job : '31953'
+  keep_dms_locally : True
+diamond tally:
+  diamond_folder: Kaiko_volume/Kaiko_stationary_files/diamond-2.0.15
+  diamond_database: D:/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db
+  db_pattern : OX
+  ncbi_taxa_folder: D:/ncbi_taxa
+  cached : False
+  n_protein_cutoff: 4000000
+taxa to fasta:
+  coverage_target: 0.1
+  ref_fasta: D:/Kaiko_stationary_files/Reference_Proteomes/individual_reference_proteome_fastas
+  ref_proteome_log: D:/Kaiko_stationary_files/Reference_Proteomes/database_log.xlsx

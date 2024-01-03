@@ -13,6 +13,27 @@ files = [f for f in os.listdir(directory) if bool(re.search(r'_out.txt', f))]
 selection = 0.25
 samples = []
 
+
+def prepare_denovo_command(mgf_dir, denovout_dir, config):
+    ## Step 1. Run Denovo using subprocess.
+    kaiko_1_args = ["python", "src/kaiko_main.py", 
+                    "--mgf_dir", mgf_dir.resolve(), 
+                    "--train_dir", "model/",
+                    "--decode_dir", denovout_dir.resolve(),
+                    "--profile", config['denovo']['profile']]
+
+    if config['denovo']['topk']:
+        kaiko_1_args = kaiko_1_args + ["--topk"]
+    if config['denovo']['multi_decode']:
+        kaiko_1_args = kaiko_1_args + ["--multi_decode"]
+    if config['denovo']['beam_search']:
+        kaiko_1_args = kaiko_1_args + ["--beam_search", "--beam_size", config['denovo']['beam_size']]     
+
+    print("DeNovo: Running the following command:\n")
+    for i in range(len(kaiko_1_args)):
+        kaiko_1_args[i] = str(kaiko_1_args[i])
+    return(kaiko_1_args)
+
 # @profile
 def combine_denovo_output(directory, prefix, selection = 0.25):
 
@@ -48,15 +69,13 @@ def combine_denovo_output(directory, prefix, selection = 0.25):
 
     combined_fasta = directory / (prefix + '_combined_denovo.fasta')
     # Path('Kaiko_volume/Kaiko_intermediate/' + prefix + '_combined_denovo.fasta')
-
-    for index in range(len(samples)):
-        summary = samples[index]
-        nms = [">S" + str(index) + '_' + summary['scans'][i] + "_" + str(summary['times'][i]) for i in range(len(summary))]
-        to_write = [None]*2*len(nms)
-        to_write[::2] = nms
-        to_write[1::2] = summary['output_seq']
-
-        with combined_fasta.open('a') as fasta_file:
+    with combined_fasta.open('w') as fasta_file:
+        for index in range(len(samples)):
+            summary = samples[index]
+            nms = [">S" + str(index) + '_' + summary['scans'][i] + "_" + str(summary['times'][i]) for i in range(len(summary))]
+            to_write = [None]*2*len(nms)
+            to_write[::2] = nms
+            to_write[1::2] = summary['output_seq']       
             for line in to_write:
                 fasta_file.write(f"{line}\n")
                 # fasta_file.write(line + "\n")

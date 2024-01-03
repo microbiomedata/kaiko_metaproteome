@@ -2,12 +2,15 @@ denovo:
   beam_search: true
   beam_size: 5
   cached: false
+  dms_analysis_job: ''
+  keep_dms_locally: false
   mgf_dir: Kaiko_volume/Kaiko_input_files/
   multi_decode: true
   profile: false
   topk: false
 diamond tally:
   cached: false
+  db_pattern: TaxID
   diamond_database: Kaiko_volume/Kaiko_stationary_files/uniref100
   diamond_folder: Kaiko_volume/Kaiko_stationary_files/diamond
   mode: member
@@ -23,5 +26,6 @@ taxa to fasta:
   proteome_index: Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt
   proteome_index_s: Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt
   ref_fasta: Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz
+  ref_proteome_log: Kaiko_volume/Kaiko_stationary_files/Reference Proteomes/database_log.xlsx
   taxa_key: TaxID
   top_strains: 1
