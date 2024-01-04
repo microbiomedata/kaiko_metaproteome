@@ -58,32 +58,74 @@ denovout_dir = output_dir / ('Kaiko_intermediate/' + prefix + '/denovo_output/')
 intermediate_dir = output_dir / ("Kaiko_intermediate/" + prefix)
 final_dir = output_dir / ('Kaiko_output/' + prefix)
 denovout_dir.mkdir(parents=True, exist_ok=True)
+denovo_completion_log = denovout_dir / 'denovo_completion_log.txt'
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 final_dir.mkdir(parents=True, exist_ok=True)
 
 if not config['denovo']['cached']:
+    all_mgf = []
     
     if config['denovo']['dms_analysis_job'] != '':
         print('Gathering paths from dms')
         mzml_paths = get_request_dataset_paths(config['denovo']['dms_analysis_job'])
         for mzml_path in mzml_paths:
-            print(f'Converting file {str(mzml_path.name)}')
+            individual_mgf_name = str(mzml_path.name).split('.mzML.gz')[0]
+            all_mgf = all_mgf + [f'{individual_mgf_name}.mgf']
+            expected_output_path = denovout_dir / f'{individual_mgf_name}_out.txt'
+            individual_mgf_dir = mgf_dir / individual_mgf_name
             
-            individual_mgf_dir = str(mzml_path.name).split('.mzML.gz')[0]
-            individual_mgf_dir = mgf_dir / individual_mgf_dir
-            generate_mgf_files(str(mzml_path.parent), dest_dir = str(individual_mgf_dir.resolve()), dataset_pattern = str(mzml_path.name), gzipped = True)
+            ## If denovo is done, don't need to do it again
+            if not expected_output_path.exists():
+                ## If another process already started working on this dataset, skip.
+                if not individual_mgf_dir.exists():
+                    print(f'Converting file {str(mzml_path.name)}')
+                    generate_mgf_files(str(mzml_path.parent), dest_dir = str(individual_mgf_dir.resolve()), dataset_pattern = str(mzml_path.name), gzipped = True)
 
-            kaiko_1_args = prepare_denovo_command(individual_mgf_dir, denovout_dir, config)
-            print(" ".join(kaiko_1_args) + "\n")
-            subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
-            if not config['denovo']['keep_dms_locally']:
-                print(f'Removing the locally stored coverted spectra {str(individual_mgf_dir)}.mgf')
-                os.remove(individual_mgf_dir / f'{str(individual_mgf_dir)}.mgf')
+                    kaiko_1_args = prepare_denovo_command(individual_mgf_dir, denovout_dir, config)
+                    print(" ".join(kaiko_1_args) + "\n")
+                    subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
+
+                    with denovo_completion_log.open('a') as completion_log:
+                        completion_log.write(f'{individual_mgf_name}.mgf\t{expected_output_path.name}\t completed denovo sequencing\n')
+
+                    if not config['denovo']['keep_dms_locally']:
+                        print(f'Removing the locally stored coverted spectra {str(individual_mgf_dir)}.mgf')
+                        try:
+                            os.remove(individual_mgf_dir / f'{str(individual_mgf_name)}.mgf')
+                        except:
+                            print('woops')
+                else:
+                    print(f'{str(individual_mgf_dir)} already exists, another process is working on this dataset. Moving onto the next dataset')
+            else:
+                print(f'{str(expected_output_path.name)} already exists. Moving onto the next dataset')
     else:
-        kaiko_1_args = prepare_denovo_command(mgf_dir, denovout_dir, config)
-        print(" ".join(kaiko_1_args) + "\n")
-        subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
-        
+        mgf_files = [x for x in mgf_dir.glob('*.mgf')]
+        for mgf_file in mgf_files:
+            mgf_name = str(mgf_file.name).split('.mgf')[0]
+            all_mgf = all_mgf + [str(mgf_file.name)]
+            expected_output_path = denovout_dir / f'{mgf_name}_out.txt'
+            ## If another process is working on this dataset, or if the denovo for that dataset is already done, skip
+            if not expected_output_path.exists():
+                ## Make the expected output handle immediately, so any other process knows NOT to start the same dataset
+                with expected_output_path.open('w') as output_file:
+                    pass
+                kaiko_1_args = prepare_denovo_command(mgf_file, denovout_dir, config)
+                print(" ".join(kaiko_1_args) + "\n")
+                subprocess.run(kaiko_1_args, cwd = "Kaiko_denovo")
+                
+                with denovo_completion_log.open('a') as completion_log:
+                    completion_log.write(f'{mgf_file.name}\t{expected_output_path.name}\t completed denovo sequencing\n')
+            else:
+                print(f'{str(expected_output_path)} already exists, another process is working on this or already finished this dataset. Moving onto the next dataset')
+
+    with denovo_completion_log.open('r') as completion_log:
+        completed_mgf = []
+        for line in completion_log:
+            completed_mgf = completed_mgf + [line.split('\t')[0]]
+        ## We ONLY proceed whenever ALL datasets are DONE. If not, then the process fails and ONLY the process that finishes last will continue 
+        ## with the DIAMOND search
+        assert set(completed_mgf) == set(all_mgf)
+        print('All the denovo sequencing has been finished. Moving to DIAMOND search')
 
 if (config['denovo']['profile']):
     profiler = cProfile.Profile()

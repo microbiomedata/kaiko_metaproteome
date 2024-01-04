@@ -3124,10 +3124,16 @@ def multi_decode(input_dir=deepnovo_config.input_mgf_dir):
       knapsack_matrix = np.load(deepnovo_config.knapsack_file)
 
     ### collect data (mgf) files to test
-    print('mgf file path:', input_dir + "/*.mgf")
-    mgf_files = glob.glob(input_dir + "/*.mgf")
-    num_mgf_files = len(mgf_files)
-    print('num. of mgf files:{0}'.format(num_mgf_files))
+    if os.path.isdir(input_dir):
+      print('mgf file path:', input_dir + "/*.mgf")
+      mgf_files = glob.glob(input_dir + "/*.mgf")
+      num_mgf_files = len(mgf_files)
+      print('num. of mgf files:{0}'.format(num_mgf_files))
+    elif os.path.isfile(input_dir):
+      print("Single mgf file passed\n")
+      print('mgf file path:', input_dir)
+      mgf_files = [input_dir]
+      num_mgf_files = len(mgf_files)
 
     # print to output file
     decode_all_log = "{0}/mgf_test/log.txt".format(deepnovo_config.FLAGS.train_dir)
@@ -3200,7 +3206,10 @@ def multi_decode(input_dir=deepnovo_config.input_mgf_dir):
         avg_peak_count = 0
         avg_peptide_len = 0
 
-        with open(decode_output_file, 'w') as output_file_handle:
+        ## Changed to append. The (empty) file is created immediately by the main pipeline, so we only need to append to it here.
+        ## The change is due to a change in logic of the main pipeline, which makes it possible to run multiple
+        ## processes on the same set of mgf files without the processes running into each other, speeding up benchmarking.
+        with open(decode_output_file, 'a') as output_file_handle:
           print("scan\ttarget_seq\toutput_seq\toutput_score\taccuracy_AA\taccuracy_AA_lbyl\tlen_AA"
                 "\texact_match\n",
                 file=output_file_handle,
