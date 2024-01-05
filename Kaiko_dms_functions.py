@@ -12,6 +12,7 @@ from pyteomics import mzml, auxiliary
 
 def get_request_dataset_paths(job_req_id):
     cnxn = pyodbc.connect("DRIVER={SQL Server};SERVER=gigasax;DATABASE=dms5;")
+    # cnxn = pyodbc.connect(f"DRIVER={pyodbc.drivers()[0]};SERVER=gigasax;DATABASE=dms5;")
     sql_str_job_req = f"SELECT * FROM v_analysis_job_request_detail_report WHERE [request]={job_req_id}"
     datasets_df = pd.read_sql(sql_str_job_req, cnxn)
 

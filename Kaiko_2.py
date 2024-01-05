@@ -1,22 +1,14 @@
 import os
 import re
+import sys
 import pandas as pd
 
 from math import floor
 from pathlib import Path
 
-## This is a the same in function as the R script which combines the denovo output into a single fasta file.
-## The only difference is that python and R handle ties in ordering differently. When a table is ordered,
-## And the top 25% of the rows are taken, there can be slight differences between R and python.
-directory = 'Kaiko_volume/Kaiko_intermediate/denovo_output/'
-files = [f for f in os.listdir(directory) if bool(re.search(r'_out.txt', f))]
-selection = 0.25
-samples = []
-
-
 def prepare_denovo_command(mgf_dir, denovout_dir, config):
     ## Step 1. Run Denovo using subprocess.
-    kaiko_1_args = ["python", "src/kaiko_main.py", 
+    kaiko_1_args = [sys.executable, "src/kaiko_main.py", 
                     "--mgf_dir", mgf_dir.resolve(), 
                     "--train_dir", "model/",
                     "--decode_dir", denovout_dir.resolve(),
