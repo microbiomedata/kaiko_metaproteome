@@ -749,11 +749,11 @@ class ModelInference(object):
     print("".join(["="] * 80)) # section-separating line
     print("ModelInference: restore_model()")
 
-    import pandas as pd
+    # import pandas as pd
 
-    tf2_debugging = tf.compat.v1.global_variables()
-    xx = pd.DataFrame([var.name for var in tf2_debugging])
-    xx.to_csv("tf2.0.0_variable_names.txt", sep = "\t", index=False)
+    # tf2_debugging = tf.compat.v1.global_variables()
+    # xx = pd.DataFrame([var.name for var in tf2_debugging])
+    # xx.to_csv("tf2.0.0_variable_names.txt", sep = "\t", index=False)
 
     assigment_map = {'embedding_rnn_seq2seq/conv1_W' : 'embedding_rnn_seq2seq/conv1_W',
      'embedding_rnn_seq2seq/conv1_B' : 'embedding_rnn_seq2seq/conv1_B',
