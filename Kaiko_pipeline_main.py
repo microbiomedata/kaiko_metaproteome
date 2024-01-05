@@ -126,13 +126,27 @@ if not config['denovo']['cached']:
         ## with the DIAMOND search
         assert set(completed_mgf) == set(all_mgf)
         print('All the denovo sequencing has been finished. Moving to DIAMOND search')
+        f = open(denovout_dir / f'{prefix}_config.yaml', 'a')
+        yaml.safe_dump(config, f)   
 
 if (config['denovo']['profile']):
     profiler = cProfile.Profile()
     profiler.enable()
 
-denovo_combined_fasta = denovout_dir / (prefix + '_combined_denovo.fasta')
-diamond_search_out = intermediate_dir / (prefix + "_diamond_search_output.dmd")
+nprot = '{:.5e}'.format(int(config['diamond tally']['n_protein_cutoff']))
+top_strains = str(config['taxa to fasta']['top_strains'])
+benchmark = config['diamond tally']['benchmark']
+if config['diamond tally']['db_pattern'] == 'OX':
+    db_name = 'ref_prot'
+elif config['diamond tally']['db_pattern'] == 'TaxID':
+    db_name = 'uniref100'
+if benchmark:
+    suffix = f'_benchmark_{benchmark}'
+else:
+    suffix = ''
+
+denovo_combined_fasta = denovout_dir / (f'{prefix}_combined_denovo.fasta')
+diamond_search_out = intermediate_dir / (f'{prefix}_diamond_search_output_{db_name}.dmd')
 
 if not config['diamond tally']['cached']:
     ## Step 2. Combine into fasta
@@ -159,19 +173,17 @@ if not config['diamond tally']['cached']:
     os.system(" ".join(diamond_args))
     os.chdir(working_dir)
 
-nprot = '{:.5e}'.format(int(config['diamond tally']['n_protein_cutoff']))
-top_strains = str(config['taxa to fasta']['top_strains'])
-kaiko_tally = intermediate_dir / (prefix + "_kaiko_prediction" + f'_top_taxa_nprot_{nprot}_top_{top_strains}_strains.csv')
-
+species_tally_path = intermediate_dir / (prefix + f'_top_taxa_nprot_{nprot}_top_{top_strains}_strains_{db_name}{suffix}.xlsx')
+detailed_fout = intermediate_dir / f'{prefix}_{db_name}_detailed.csv'
 # Step 4. Tallying the diamond results
 run_diamond_tally(diamond_search_out, 
                   int(config['taxa to fasta']['top_strains']), 
                   ncbi_taxa_folder, 
                   config['diamond tally']['mode'], 
-                  kaiko_tally, 
-                  float(config['diamond tally']['pident']),
+                  species_tally_path, detailed_fout,
                   int(config['diamond tally']['n_protein_cutoff']),
-                  config['diamond tally']['db_pattern'])
+                  config['diamond tally']['db_pattern'],
+                  benchmark)
 
 
 ## Step 5. Putting together the final fasta file.
@@ -187,7 +199,7 @@ kaiko_final_output = final_dir / (prefix + f'_kaiko_fasta_coverage_{coverage_tar
 
 aggregate_fasta(ref_fasta,
                 ref_proteome_log,
-                kaiko_tally,
+                species_tally_path,
                 kaiko_final_output,
                 config['taxa to fasta']['coverage_target'],
                 int(config['taxa to fasta']['top_strains']),

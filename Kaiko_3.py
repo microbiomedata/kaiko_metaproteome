@@ -4,13 +4,17 @@ import pandas as pd
 import numpy as np
 import time
 import re
+import xlsxwriter
 
 from pathlib import Path, PureWindowsPath
 
 
 # @profile    
-def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, fout, pident, n_protein_cutoff, db_pattern):
-    detailed_fout = fout.parent / (re.sub("_kaiko_prediction_.*.csv$", "", fout.name) + '_detailed.csv')
+def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, fout, detailed_fout, n_protein_cutoff, db_pattern, benchmark = []):
+    if benchmark:
+        pident = min(benchmark)
+    else:
+        pident = 100.0
     taxa_stats_path = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100_member_stats_with_lineage.txt'))
     taxa_stats = pd.read_csv(taxa_stats_path, sep = '\t')
 
@@ -25,10 +29,10 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
     if not detailed_fout.exists():
 
         filterby={}
-        if pident: filterby['pident'] = float(pident)
-        # #     if FLAGS.evalue: filterby['evalue'] = FLAGS.evalue
-        # #     if FLAGS.mismatch: filterby['mismatch'] = FLAGS.mismatch
-        print('filterby:', filterby)
+        # if pident: filterby['pident'] = float(pident)
+        # # #     if FLAGS.evalue: filterby['evalue'] = FLAGS.evalue
+        # # #     if FLAGS.mismatch: filterby['mismatch'] = FLAGS.mismatch
+        # print('filterby:', filterby)
         
         ############################################################
         # read diamond output file
@@ -75,19 +79,21 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
             scanids = merged.scans.tolist()
             uids = merged.uid.tolist()
             commons = merged.common_taxa.tolist()
+            pidents = merged.pident.tolist()
             for ii, members in enumerate(merged.members.str.split(":").tolist()):
                 for mm in members:
-                    unique_members.append({"scan":scanids[ii], "uid":uids[ii], "member_taxa":int(mm), "common_taxa":int(commons[ii])})
+                    unique_members.append({"scan":scanids[ii], "uid":uids[ii], "member_taxa":int(mm), "common_taxa":int(commons[ii]), "pident":pidents[ii]})
             print("  #members:{}".format(len(unique_members)))
             members_df = pd.DataFrame(unique_members)
 
         elif db_pattern == 'OX':
-            members_df = filtered_dmd[['scans']]
+            members_df = filtered_dmd[['scans']].copy()
             members_df['scan'] = members_df['scans']
             members_df['uid'] = [uniref_id.split('|')[1] for uniref_id in filtered_dmd['uniref_id']]
             members_df['protein'] = members_df['uid']
             members_df['member_taxa'] = filtered_dmd['taxid']
             members_df['common_taxa'] = members_df['member_taxa']
+            members_df['pident'] = filtered_dmd['pident']
             members_df = pd.DataFrame(members_df)
  
         ############################################################
@@ -97,72 +103,33 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
         
         detailed_output = members_df
         detailed_output["protein"] = [re.sub("UniRef100_", "", detailed_output.uid[i]) for i in range(0, len(detailed_output))]
-        detailed_output = detailed_output[['scan', 'uid', 'protein', 'member_taxa', 'common_taxa']]
+        detailed_output = detailed_output[['scan', 'uid', 'protein', 'member_taxa', 'common_taxa', 'pident']]
         detailed_output = detailed_output.merge(taxa_stats, left_on = taxa_col, right_on = 'taxid', how = 'left')
         detailed_output.to_csv(detailed_fout, index = False)
     else:
         print("Loading |scan|protein|taxa| table " + detailed_fout.name + "\n")
         detailed_output = pd.read_csv(detailed_fout)
 
-    # detailed_output = detailed_output[detailed_output['genus'] == detailed_output['genus']]
-    detailed_output = detailed_output[['scan', 'uid', 'protein', 'member_taxa', 'common_taxa']]
-    detailed_output = detailed_output.merge(taxa_stats, left_on = taxa_col, right_on = 'taxid', how = 'left')
-    
-    # detailed_output = detailed_output[detailed_output['n_protein'] < n_protein_cutoff]
-    unique_pepseq_taxa = detailed_output.drop_duplicates(subset=['scan',taxa_col])
-    pepcount_taxid = unique_pepseq_taxa[taxa_col].value_counts()
-
-    print('  unique peptides: {}'.format(detailed_output.scan.value_counts().shape[0]))
-    print('  unique taxa: {}'.format(pepcount_taxid.shape[0]))
-
-    def besthit(row):
-        return pepcount_taxid[row[taxa_col]].nlargest(1, keep='all').index.tolist()
-
-    besthits = []
-    for besthit in unique_pepseq_taxa.groupby(by='scan').apply(besthit):
-        besthits += besthit
-    besthits = pd.Series(besthits).value_counts()
-
-    pepcount_taxid = pepcount_taxid.to_frame('hits')
-    pepcount_taxid['taxid'] = pepcount_taxid.index
-    pepcount_taxid = pepcount_taxid.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
-    
-    if n_strain_select > 0 & n_strain_select <= 5:
-        _n_strain_select = 5
-    elif n_strain_select > 5:
-        _n_strain_select = n_strain_select
+    all_sheets = []
+    if benchmark:
+        for pident in benchmark:
+            detailed_output_sheet = detailed_output[detailed_output['pident'] >= pident]
+            df = make_top_taxa_df(detailed_output_sheet, taxa_stats, taxa_col, n_strain_select, n_protein_cutoff)
+            all_sheets = all_sheets + [df]
     else:
-        _n_strain_select = -1
-    
-    # top_taxa = besthits.nlargest(n_strain_select, keep='all').to_frame(name='hits')
-    top_taxa = besthits.to_frame(name='hits')
-    top_taxa['taxid'] = top_taxa.index
+        detailed_output_sheet = detailed_output[detailed_output['pident'] >= 100.0]
+        df = make_top_taxa_df(detailed_output_sheet, taxa_stats, taxa_col, n_strain_select, n_protein_cutoff)
 
-    ############################################################
-    # save top-rank taxa info
-    ############################################################
-    print("Saving top-rank taxa info...")
-    # df = pd.concat([top_taxa, taxa_stats], join='inner', axis=1)
-    df = top_taxa.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
-    df['running_coverage'] = df['hits'].cumsum()/df['hits'].sum()
-    append = pd.DataFrame({'taxid' : [],
-                           'tax_name' : [],
-                           'species' : [],
-                           'rank' : [],
-                           'hits' : [],
-                           'n_protein' : [],
-                           'running_coverage' : [],
-                           'notes' : []})
-    df['notes'] = 'Primary taxa identified by Kaiko. \'hits\' denotes tally2 hits'
-    pepcount_taxid = pepcount_taxid[pepcount_taxid['n_protein'] < n_protein_cutoff]
-    for index in range(len(df)):
-        if df.iloc[index].n_protein > n_protein_cutoff:
-            subcount = find_smaller_taxa(df, pepcount_taxid, _n_strain_select, index)
-            append = pd.concat([append, subcount])
+    writer = pd.ExcelWriter(fout, engine='xlsxwriter')
+    if benchmark:
+        for pident, df in zip(benchmark, all_sheets):
+            df.to_excel(writer, sheet_name = f'pident at least {pident} percent')
 
-    df = pd.concat([df, append])
-    df = df.sort_values(by = ['running_coverage', 'notes'])
-    if fout: df.to_csv(fout, index = False)
+        writer.save()
+    else:
+        df.to_excel(writer, sheet_name = f'pident at least {100} percent')
+        
+        writer.save()
 
 def find_smaller_taxa(df, pepcount_taxid, _n_strain_select, index):
     tax_ranks = ['species', 'genus', 'family', 'order', 'class', 'phylum', 'kingdom', 'superkingdom']
@@ -270,3 +237,60 @@ def get_taxa_members(member_tbl_file, unique_unirefs):
 #                   kaiko_tally, 
 #                   100,
 #                   150000)
+
+
+def make_top_taxa_df(detailed_output, taxa_stats, taxa_col, n_strain_select, n_protein_cutoff):
+    unique_pepseq_taxa = detailed_output.drop_duplicates(subset=['scan',taxa_col])
+    pepcount_taxid = unique_pepseq_taxa[taxa_col].value_counts()
+
+    print('  unique peptides: {}'.format(detailed_output.scan.value_counts().shape[0]))
+    print('  unique taxa: {}'.format(pepcount_taxid.shape[0]))
+
+    def besthit(row):
+        return pepcount_taxid[row[taxa_col]].nlargest(1, keep='all').index.tolist()
+
+    besthits = []
+    for besthit in unique_pepseq_taxa.groupby(by='scan').apply(besthit):
+        besthits += besthit
+    besthits = pd.Series(besthits).value_counts()
+
+    pepcount_taxid = pepcount_taxid.to_frame('hits')
+    pepcount_taxid['taxid'] = pepcount_taxid.index
+    pepcount_taxid = pepcount_taxid.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
+    
+    if n_strain_select > 0 & n_strain_select <= 5:
+        _n_strain_select = 5
+    elif n_strain_select > 5:
+        _n_strain_select = n_strain_select
+    else:
+        _n_strain_select = -1
+    
+    # top_taxa = besthits.nlargest(n_strain_select, keep='all').to_frame(name='hits')
+    top_taxa = besthits.to_frame(name='hits')
+    top_taxa['taxid'] = top_taxa.index
+
+    ############################################################
+    # save top-rank taxa info
+    ############################################################
+    print("Saving top-rank taxa info...")
+    # df = pd.concat([top_taxa, taxa_stats], join='inner', axis=1)
+    df = top_taxa.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
+    df['running_coverage'] = df['hits'].cumsum()/df['hits'].sum()
+    append = pd.DataFrame({'taxid' : [],
+                        'tax_name' : [],
+                        'species' : [],
+                        'rank' : [],
+                        'hits' : [],
+                        'n_protein' : [],
+                        'running_coverage' : [],
+                        'notes' : []})
+    df['notes'] = 'Primary taxa identified by Kaiko. \'hits\' denotes tally2 hits'
+    pepcount_taxid = pepcount_taxid[pepcount_taxid['n_protein'] < n_protein_cutoff]
+    for index in range(len(df)):
+        if df.iloc[index].n_protein > n_protein_cutoff:
+            subcount = find_smaller_taxa(df, pepcount_taxid, _n_strain_select, index)
+            append = pd.concat([append, subcount])
+
+    df = pd.concat([df, append])
+    df = df.sort_values(by = ['running_coverage', 'notes'])
+    return(df)

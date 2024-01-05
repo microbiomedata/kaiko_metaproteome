@@ -30,9 +30,9 @@ config['diamond tally'] = {'diamond_folder' : 'Kaiko_volume/Kaiko_stationary_fil
                           #  'diamond_output' : "Kaiko_volume/Kaiko_intermediate/denovo_output/diamond_search_output.dmd",
                            'diamond_database' : "Kaiko_volume/Kaiko_stationary_files/uniref100",
                            'n_protein_cutoff' : 300000,
-                           'pident' : 100,
                            'cached' : False,
-                           'db_pattern' : 'TaxID'}
+                           'db_pattern' : 'TaxID',
+                           'benchmark' : []}
 
 
 config['taxa to fasta'] = {'ref_fasta' : "Kaiko_volume/Kaiko_stationary_files/uniref100.fasta.gz",
