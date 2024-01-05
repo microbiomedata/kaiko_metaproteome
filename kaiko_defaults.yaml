@@ -9,6 +9,7 @@ denovo:
   profile: false
   topk: false
 diamond tally:
+  benchmark: []
   cached: false
   db_pattern: TaxID
   diamond_database: Kaiko_volume/Kaiko_stationary_files/uniref100
@@ -16,7 +17,6 @@ diamond tally:
   mode: member
   n_protein_cutoff: 300000
   ncbi_taxa_folder: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa
-  pident: 100
 general:
   output_dir: Kaiko_volume
 taxa to fasta:
