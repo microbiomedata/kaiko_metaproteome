@@ -33,7 +33,8 @@ config['diamond tally'] = {'diamond_folder' : 'Kaiko_volume/Kaiko_stationary_fil
                            'n_protein_cutoff' : 3000000,
                            'cached' : False,
                            'db_pattern' : 'OX',
-                           'benchmark' : []}
+                           'benchmark' : [],
+                           'taxa_stats' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_member_stats_with_lineage.txt'}
 
 
 config['taxa to fasta'] = {'ref_fasta' : 'C:/Kaiko_stationary_files/Reference_Proteomes',
