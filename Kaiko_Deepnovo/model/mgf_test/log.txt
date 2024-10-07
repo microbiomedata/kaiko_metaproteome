@@ -1,0 +1,3 @@
+file	recall_AA	precision_AA	recall_AA_lbyl	precision_AA_lbyl	recall_peptide	recall_len	counter	counter_skipped	counter_skipped_mod	counter_skipped_aa	counter_skipped_len	counter_skipped_mass	counter_skipped_mass_precision	avg_peak_count	avg_peptide_len
+
+151218_exo4_6	0.7082390953150243	0.7062614112340243	0.6228325255788907	0.6210933304693373	0.44670846394984326	0.6959247648902821	638	357	0	333	12	12	0	213.88401253918497	14.553291536050157

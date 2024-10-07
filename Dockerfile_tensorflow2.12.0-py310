@@ -1,0 +1,10 @@
+FROM python:3.10
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends         build-essential         curl         libfreetype6-dev         libpng-dev         libzmq3-dev         pkg-config         python3         python3-dev         rsync         software-properties-common         unzip         && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+RUN pip3 --no-cache-dir install https://files.pythonhosted.org/packages/3f/b2/33372601ed71fb41049642f8f6e1e142215e8b5c3463df434fc8885db278/tensorflow-2.12.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+RUN pip3 --no-cache-dir install         ipykernel         jupyter         matplotlib         numpy         scipy         scikit-learn         pandas         Pillow         && \
+    python3 -m ipykernel.kernelspec
+CMD ["/bin/bash"]
+MAINTAINER Camilo Posso <camilo.posso@pnnl.gov>

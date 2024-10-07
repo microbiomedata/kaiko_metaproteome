@@ -18,8 +18,6 @@ Kaiko_volume/Kaiko_output/*
 /Kaiko_old
 /Dockerfile-py27
 /random txt files/*
-/mgf/*
-Kaiko_volume/Kaiko_stationary_files/unit_test_correct_output
 
 !Kaiko_volume/Kaiko_intermediate/denovo_output/README.txt
 !Kaiko_volume/Kaiko_stationary_files/README.txt
@@ -171,7 +169,5 @@ Kaiko_denovo_tf1.15.0
 tf2.0.0_variable_names.txt
 tf_updgrade_report.txt
 *.pptx
-Kaiko_volume/Kaiko_stationary_files/unit_test_correct_output/mgf_large_unit_test_topk_False_beam_size_5/Biodiversity_A_cryptum_FeTSB_anaerobic_2_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969_out.txt
-Kaiko_volume/Kaiko_stationary_files/unit_test_correct_output/mgf_large_unit_test_topk_False_beam_size_5/Biodiversity_A_cryptum_FeTSB_anaerobic_2_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969_out.txt
-Kaiko_volume/Kaiko_stationary_files/unit_test_correct_output/mgf_large_unit_test_topk_False_beam_size_5/Biodiversity_A_cryptum_FeTSB_anaerobic_2_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969_out.txt
-Kaiko_volume/Kaiko_stationary_files/unit_test_correct_output/mgf_large_unit_test_topk_False_beam_size_5/Biodiversity_A_cryptum_FeTSB_anaerobic_3_01Jun16_Pippin_16-03-39_unit_test_prop_0.005_seed_6969_out.txt
+Casanovo/PNNL_casanovo.ckpt
+Casanovo/casanovo_massivekb.ckpt

@@ -1,0 +1,24 @@
+########### MASSIVE KB #####################
+https://github.com/Noble-Lab/casanovo/releases/download/v4.0.0/casanovo_massivekb.ckpt
+
+
+
+
+
+
+
+########### PNNL_casanovo ##################
+
+This is continued from the checkpoint at the end of epoch 0. 
+
+Using the checkpoint at /tahoma/emsl61033/casanovo_checkpoint/casanovo_attempt2_defaults_7_24_24/epoch_0/epoch=0-step=478716.ckpt
+
+Validation loss initially increased, likely because the optimizer was started from scratch, but the model wasn't.
+
+Still the validation loss did decrease after the first checkpoint, and lowered to 0.261628 at the end of the epoch.
+
+I kept the training going, and validation loss reached a minimum of 0.252154 at the second to last checkpoint I saved, at 638288 steps from the start of this training.
+
+Then validation and increased to 0.255947 at step 718074, the last checkpoint.
+
+###################################################
