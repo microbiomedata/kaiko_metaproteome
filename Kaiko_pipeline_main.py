@@ -184,7 +184,8 @@ run_diamond_tally(diamond_search_out,
                   species_tally_path, detailed_fout,
                   int(config['diamond tally']['n_protein_cutoff']),
                   config['diamond tally']['db_pattern'],
-                  benchmark)
+                  benchmark,
+                  taxa_stats_filepath=config['diamond tally']['taxa_stats'])
 
 
 ## Step 5. Putting together the final fasta file.

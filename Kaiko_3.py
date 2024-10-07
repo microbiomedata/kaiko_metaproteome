@@ -9,12 +9,13 @@ from pathlib import Path, PureWindowsPath
 
 
 # @profile    
-def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, fout, detailed_fout, n_protein_cutoff, db_pattern, benchmark = []):
+def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, fout, detailed_fout, n_protein_cutoff, db_pattern, benchmark = [],
+                      taxa_stats_filepath = 'Kaiko_volume/Kaiko_stationary_files/uniref100_member_stats_with_lineage.txt'):
     if benchmark:
         pident = min(benchmark)
     else:
         pident = 100.0
-    taxa_stats_path = Path(PureWindowsPath('Kaiko_volume/Kaiko_stationary_files/uniref100_member_stats_with_lineage.txt'))
+    taxa_stats_path = Path(taxa_stats_filepath)
     taxa_stats = pd.read_csv(taxa_stats_path, sep = '\t')
 
     if mode=="member":
