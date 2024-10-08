@@ -3,6 +3,7 @@ import time
 import os
 import json
 
+# import gffpandas.gffpandas
 import pandas as pd
 import numpy as np
 import indexed_gzip as igzip
@@ -100,12 +101,27 @@ def create_annotation_file(ref_proteome_log, ref_fasta, taxids, output_annotatio
             feature_attrributes = f'{feature_attrributes};taxa_id={taxid}'
             if 'GO_annotations' in selected_annotations[feature].keys():
                 go_annotaions = selected_annotations[feature]['GO_annotations']
+                go_annotaions = [annotation.replace('=', '_') for annotation in go_annotaions]
+                if len(go_annotaions) > 1:
+                    go_annotaions = ", ".join(go_annotaions)
+                else:
+                    go_annotaions = go_annotaions[0]
                 feature_attrributes = f'{feature_attrributes};go_annotations={go_annotaions}'
             if 'KEGG_annotations' in selected_annotations[feature].keys():
                 kegg_annotations = selected_annotations[feature]['KEGG_annotations']
+                kegg_annotations = [annotation.replace('=', '_') for annotation in kegg_annotations]
+                if len(kegg_annotations) > 1:
+                    kegg_annotations = ", ".join(kegg_annotations)
+                else:
+                    kegg_annotations = kegg_annotations[0]
                 feature_attrributes = f'{feature_attrributes};kegg_annotations={kegg_annotations}'
             if 'Reactome_annotations' in selected_annotations[feature].keys():
                 reactome_annotations = selected_annotations[feature]['Reactome_annotations']
+                reactome_annotations = [annotation.replace('=', '_') for annotation in reactome_annotations]
+                if len(reactome_annotations) > 1:
+                    reactome_annotations = ", ".join(reactome_annotations)
+                else:
+                    reactome_annotations = reactome_annotations[0]
                 feature_attrributes = f'{feature_attrributes};reactome_annotations={reactome_annotations}'
             
             line = f'{feature}\t{feature_source}\t{feature_type}\t{feature_start}\t{feature_end}\t{feature_score}\t{feature_strand}\t{feature_phase}\t{feature_attrributes}\n'
