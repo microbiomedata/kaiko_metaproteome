@@ -248,6 +248,7 @@ def write_taxa_ref_proteome(ref_proteome_log, ref_fasta, taxids, output_fasta_pa
     proteome_df = pd.read_excel(ref_proteome_log)
     proteome_df.index = proteome_df['Organism Id']
     total_proteins = 0
+    output_fasta_path.parent.mkdir(exist_ok=True, parents=True)
     with output_fasta_path.open('w') as output_fasta:
         for taxid in taxids:
             proteome_id = proteome_df.loc[taxid]['Proteome Id']
