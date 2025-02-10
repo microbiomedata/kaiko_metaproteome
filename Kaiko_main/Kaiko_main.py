@@ -28,6 +28,11 @@ assert args.config is not None, "Please provide a config file with the spectrum 
 user_config_path = Path(args.config)
 assert user_config_path.exists(), "File " + str(user_config_path.absolute()) + " does not exist."
 config_user = yaml.safe_load(user_config_path.open())
+if 'score' in config_user['diamond tally'].keys():
+    if config_user['diamond tally']['score'] is not None:
+        tally_mode = 'score'
+else:
+    tally_mode = 'pident'
 
 ## Overriding defaults if values found in user config.
 for section in config_user.keys():
@@ -44,11 +49,11 @@ ncbi_taxa_folder = Path(PureWindowsPath(config['diamond tally']['ncbi_taxa_folde
 ref_fasta = Path(PureWindowsPath(config['taxa to fasta']['ref_fasta']).as_posix())
 diamond_folder = Path(PureWindowsPath(config['diamond tally']['diamond_folder']).as_posix())
 diamond_database = Path(PureWindowsPath(config['diamond tally']['diamond_database']).as_posix())
-ref_fasta_igzip_index = Path(PureWindowsPath(config['taxa to fasta']['gz_index']).as_posix())
-index_path = Path(PureWindowsPath(config['taxa to fasta']['proteome_index']).as_posix())
-index_s_path = Path(PureWindowsPath(config['taxa to fasta']['proteome_index_s']).as_posix())
+# ref_fasta_igzip_index = Path(PureWindowsPath(config['taxa to fasta']['gz_index']).as_posix())
+# index_path = Path(PureWindowsPath(config['taxa to fasta']['proteome_index']).as_posix())
+# index_s_path = Path(PureWindowsPath(config['taxa to fasta']['proteome_index_s']).as_posix())
 
-ref_proteome_log = Path(PureWindowsPath(config['taxa to fasta']['ref_proteome_log']).as_posix())
+# ref_proteome_log = Path(PureWindowsPath(config['taxa to fasta']['ref_proteome_log']).as_posix())
 prefix = mgf_dir.name
 if config['diamond tally']['db_pattern'] == 'TaxID':
     mode = 'uniref100'
@@ -56,8 +61,8 @@ elif config['diamond tally']['db_pattern'] == 'OX':
     mode = 'ref_prot'
 
 ## Creating drectories in output folder:
-denovout_dir = output_dir / ('Kaiko_intermediate/' + prefix + '/denovo_output/')
-intermediate_dir = output_dir / ("Kaiko_intermediate/" + prefix)
+denovout_dir = output_dir / ('Kaiko_output/' + prefix + '/denovo_output/')
+intermediate_dir = output_dir / ("Kaiko_output/" + prefix)
 final_dir = output_dir / ('Kaiko_output/' + prefix)
 denovout_dir.mkdir(parents=True, exist_ok=True)
 denovo_completion_log = denovout_dir / 'denovo_completion_log.txt'
@@ -117,11 +122,13 @@ if not config['denovo']['cached']:
             if not expected_output_path.exists():
                 ## Make the expected output handle immediately, so any other process knows NOT to start the same dataset
                 with expected_output_path.open('w') as output_file:
-                    pass
+                    None
                 kaiko_1_args, cwd_folder = prepare_denovo_command(mgf_file, denovout_dir, config)
                 print("DeNovo: Running the following command:\n")
                 print(" ".join(kaiko_1_args) + "\n")
-                subprocess.run(kaiko_1_args, cwd = cwd_folder)
+                my_env = os.environ.copy()
+                my_env["PATH"] = f"/usr/sbin:/sbin:{my_env['PATH']}"
+                subprocess.run(kaiko_1_args, cwd = cwd_folder, env = my_env)
                 
                 with denovo_completion_log.open('a') as completion_log:
                     completion_log.write(f'{mgf_file.name}\t{expected_output_path.name}\t completed denovo sequencing\n')
@@ -143,17 +150,17 @@ if (config['denovo']['profile']):
     profiler = cProfile.Profile()
     profiler.enable()
 
-nprot = '{:.5e}'.format(int(config['diamond tally']['n_protein_cutoff']))
-top_strains = str(config['taxa to fasta']['top_strains'])
-benchmark = config['diamond tally']['benchmark']
+# nprot = '{:.5e}'.format(int(config['diamond tally']['n_protein_cutoff']))
+# top_strains = str(config['taxa to fasta']['top_strains'])
+# benchmark = config['diamond tally']['benchmark']
+# align_len = int(config['diamond tally']['align_len'])
 if config['diamond tally']['db_pattern'] == 'OX':
     db_name = 'ref_prot'
 elif config['diamond tally']['db_pattern'] == 'TaxID':
     db_name = 'uniref100'
-if benchmark:
-    suffix = f'_benchmark_{benchmark}'
-else:
-    suffix = ''
+# suffix = f'alignlen_{align_len}'
+# if benchmark:
+#     suffix = f'{suffix}_benchmark_{benchmark}'
 
 denovo_combined_fasta = denovout_dir / (f'{prefix}_combined_denovo.fasta')
 diamond_search_out = intermediate_dir / (f'{prefix}_diamond_search_output_{db_name}.dmd')
@@ -166,35 +173,56 @@ if not config['diamond tally']['cached']:
     
     ## Step 3. Passing to diamond
     if os.name == 'posix':
-        diamond_args = [f'{diamond_folder}/diamond']
+        # diamond_args = [f'{diamond_folder}/diamond']
+        diamond_args = ["./diamond"]
+        # cwd_folder = Path(PureWindowsPath("../").as_posix())
     else:
-        diamond_args = [f'{diamond_folder}\diamond']
+        # diamond_args = [f'{diamond_folder}\diamond']
+        diamond_args = ["diamond"]
         
     diamond_args = diamond_args + ["blastp", "-d",
                     diamond_database.resolve().as_posix(), "--min-score", "1",
+                    "--query-cover", "75", "--id",  "75",
                     "-q", denovo_combined_fasta.resolve().as_posix(), "-o",
-                    diamond_search_out.resolve().as_posix(), "-f", "6", "qseqid", 
-                    "stitle", "pident", "evalue", "mismatch"]
+                    diamond_search_out.resolve().as_posix(), "-f", "6", "qseqid",
+                    "stitle", "pident", "evalue", "mismatch", "gapopen", "gaps",
+                    "qstart", "qend", "qseq", "sstart", "send", "sseq", "qlen", "full_qseq"]
 
     print("DeNovo: Running the following command:\n")
     print(" ".join(diamond_args) + "\n")  
     # os.chdir(diamond_folder)
     # print(os.getcwd())
     ## Use subprocess
-    os.system(" ".join(diamond_args))
+    my_env = os.environ.copy()
+    my_env["PATH"] = f"/usr/sbin:/sbin:{my_env['PATH']}"
+    # cwd_folder = Path(PureWindowsPath(".").as_posix())
+    subprocess.run(diamond_args, cwd = diamond_folder)
+    # os.system(" ".join(diamond_args))
     # os.chdir(working_dir)
 
-species_tally_path = intermediate_dir / (prefix + f'_{db_name}{suffix}.xlsx')
+species_tally_path = intermediate_dir / (prefix + f'_{db_name}.xlsx')
 detailed_fout = intermediate_dir / f'{prefix}_{db_name}_detailed.csv'
+# pidents = config['diamond tally']['benchmark'] + [config['diamond tally']['pident']]
+# pidents = [config['diamond tally']['pident']]
+# pidents = list(set(pidents))
+# pidents = [round(float(pident), 1) for pident in pidents]
+
+if tally_mode == 'score':
+    score = config['diamond tally']['score']
+    filterby = {'score': score}
+    sheet_name = f'alignment >= {score} percent'
+else:
+    pident = config['diamond tally']['pident']
+    filterby = {'pident': pident}
+    sheet_name = f'pident >= {pident} percent'
+
 # Step 4. Tallying the diamond results
 run_diamond_tally(diamond_search_out, 
-                  int(config['taxa to fasta']['top_strains']), 
+                  filterby,
                   ncbi_taxa_folder, 
                   config['diamond tally']['mode'], 
                   species_tally_path, detailed_fout,
-                  int(config['diamond tally']['n_protein_cutoff']),
-                  config['diamond tally']['db_pattern'],
-                  benchmark, config['diamond tally']['taxa_stats'])
+                  config['diamond tally']['db_pattern'])
 
 
 ## Step 5. Putting together the final fasta file.
@@ -205,18 +233,17 @@ if config['taxa to fasta']['kingdom_list'] != "":
 else:
     kingdom_list = []
 
-coverage_target = str(config['taxa to fasta']['coverage_target'])
-output_fasta_path = final_dir / (prefix + f'_kaiko_fasta_coverage_{coverage_target}.fasta')
-output_annotation_path = final_dir / (prefix + f'_kaiko_fasta_coverage_{coverage_target}_annotations.JSON')
+# N_species = str(config['taxa to fasta']['N_species'])
+target_coverage = config['taxa to fasta']['target_coverage']
+pident = round(float(config['diamond tally']['pident']), 1)
+output_fasta_path = final_dir / (prefix + f'_kaiko_fasta_pident_{pident}_coverage_{target_coverage}.fasta')
+output_annotation_path = final_dir / (prefix + f'_kaiko_fasta_pident_{pident}_coverage_{target_coverage}.gff')
 
 aggregate_fasta(ref_fasta,
-                ref_proteome_log,
                 species_tally_path,
                 output_fasta_path, output_annotation_path,
-                config['taxa to fasta']['coverage_target'],
-                int(config['taxa to fasta']['top_strains']),
-                ref_fasta_igzip_index, index_path, index_s_path,
-                kingdom_list, mode)
+                sheet_name, target_coverage,
+                kingdom_list)
 
 # aggregate_annotations()
 

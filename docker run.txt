@@ -1,9 +1,11 @@
 
 docker build -t tensorflow2.12.0-py310 -f Dockerfile_tensorflow2.12.0-py310 .
 
-docker build . -t kaiko-py310
+docker build . -t camiloposso15/kaiko_2.0-py3.10
 
 docker run --name Kaiko_container-py310 -v C:/Users/poss982/Documents/GitHub/Kaiko_pipeline/Kaiko_volume/:/Kaiko_metaproteome/Kaiko_volume -t -d kaiko-py310
+
+docker run --name Kaiko_container-py310 -v E:/Kaiko_volume/:/Kaiko_metaproteome/Kaiko_volume -t -d kaiko-py310
 
 docker run --name Kaiko_container-py310 -v C:/Users/poss982/Documents/GitHub/Kaiko_pipeline/Kaiko_volume/:/Kaiko_pipeline/Kaiko_volume -t -d kaiko-py310
 
@@ -11,4 +13,15 @@ docker run --name Kaiko_container-py310 -v D:/Kaiko_pipeline/Kaiko_volume -t -d 
 
 docker run --name Kaiko_container-py310 -v C:/Users/poss982/Documents/GitHub/Kaiko_pipeline/Kaiko_volume/:/Kaiko_metaproteome/Kaiko_volume -t -d camiloposso15/kaiko-py310
 
+docker run --name Kaiko_container-py310 -v "C:/Users/poss982/Documents/General Analysis/PTRC development of resistance/:/Kaiko_metaproteome/Kaiko_volume" -t -d camiloposso15/kaiko-py310
+
+
 docker run --name Kaiko_container_no_volume-py310 -t -d camiloposso15/kaiko-py310
+
+docker run --name Kaiko_container_no_volume-py310 -t -d camiloposso15/kaiko_2.0-py3.10
+
+
+
+docker build . -t camiloposso15/kaiko_2.0-py3.10
+
+docker run --name Kaiko_container-py310 -v C:/Users/poss982/Documents/GitHub/Kaiko_pipeline/Kaiko_volume/:/Kaiko_metaproteome/Kaiko_volume -t -d camiloposso15/kaiko_2.0-py3.10

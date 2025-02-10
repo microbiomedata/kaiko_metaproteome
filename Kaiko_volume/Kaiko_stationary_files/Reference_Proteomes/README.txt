@@ -1,0 +1,1 @@
+This folder contains the Reference proteome database files.

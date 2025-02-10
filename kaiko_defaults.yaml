@@ -10,14 +10,14 @@ denovo:
   profile: false
   topk: false
 diamond tally:
-  benchmark: []
   cached: false
   db_pattern: OX
   diamond_database: E:/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db
   diamond_folder: Kaiko_volume/Kaiko_stationary_files/diamond
   mode: member
-  n_protein_cutoff: 3000000
   ncbi_taxa_folder: E:/Kaiko_stationary_files/ncbi_taxa
+  pident: 100
+  score: null
   taxa_stats: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa/uniref100_member_stats_with_lineage.txt
 general:
   output_dir: Kaiko_volume
@@ -30,12 +30,7 @@ taxa to fasta:
   - version
   - gene_name
   - description
-  coverage_target: 0.48
-  gz_index: Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx
   kingdom_list: ''
-  proteome_index: Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt
-  proteome_index_s: Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt
   ref_fasta: C:/Kaiko_stationary_files/Reference_Proteomes
-  ref_proteome_log: Kaiko_volume/Kaiko_stationary_files/Reference Proteomes/database_log.xlsx
+  target_coverage: 50
   taxa_key: TaxID
-  top_strains: 1

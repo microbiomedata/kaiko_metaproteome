@@ -9,7 +9,7 @@ from pathlib import Path, PureWindowsPath
 def prepare_denovo_command(mgf_file, denovout_dir, config):
     ## Step 1. Run Denovo using subprocess.
     if config['denovo']['method'] == "Deepnovo":
-        denovo_args = [sys.executable, "src/kaiko_main.py", 
+        denovo_args = ["python", "-m" "Kaiko_Deepnovo.src.kaiko_main", 
                         "--mgf_dir", mgf_file.resolve(), 
                         "--train_dir", "model/",
                         "--decode_dir", denovout_dir.resolve(),
@@ -21,32 +21,44 @@ def prepare_denovo_command(mgf_file, denovout_dir, config):
             denovo_args = denovo_args + ["--multi_decode"]
         if config['denovo']['beam_search']:
             denovo_args = denovo_args + ["--beam_search", "--beam_size", config['denovo']['beam_size']]     
-        cwd_folder = "Kaiko_Deepnovo"    
+        cwd_folder = Path(PureWindowsPath(".").as_posix())    
     
     elif config['denovo']['method'] == "PNNL_Casanovo":
-        model_path = "PNNL_casanovo.ckpt"
-        config_path  = "PNNL_casanovo_config.yaml"
+        model_path = Path(PureWindowsPath('./Casanovo/PNNL_casanovo.ckpt').as_posix())
+        config_path = Path(PureWindowsPath('./Casanovo/PNNL_casanovo_config.yaml').as_posix())
         mztab_path = denovout_dir / f'{str(mgf_file.stem)}_denovo.mztab'
         denovo_args = ["casanovo", "sequence", 
                         "--model", model_path, 
                         "--config", config_path,
                         "--output", mztab_path.resolve(),
                         mgf_file.resolve()]
-        cwd_folder = "Casanovo"
+        # denovo_args = ["python", "-m", "casanovo", "sequence",
+        #                 "--model", model_path, 
+        #                 "--config", config_path,
+        #                 "--output", mztab_path.resolve(),
+        #                 mgf_file.resolve()]
+        # cwd_folder = Path(PureWindowsPath("./Casanovo").as_posix())
+        cwd_folder = Path(PureWindowsPath(".").as_posix())
     
     elif config['denovo']['method'] == "Casanovo_massivekb":
-        model_path = "casanovo_massivekb.ckpt"
-        config_path  = "casanovo_massivekb_config.yaml"
+        model_path = Path(PureWindowsPath('./Casanovo/casanovo_massivekb.ckpt').as_posix())
+        config_path = Path(PureWindowsPath('./Casanovo/casanovo_massivekb_config.yaml').as_posix())
         mztab_path = denovout_dir / f'{str(mgf_file.stem)}_denovo.mztab'
         denovo_args = ["casanovo", "sequence", 
                         "--model", model_path, 
                         "--config", config_path,
                         "--output", mztab_path.resolve(),
                         mgf_file.resolve()]
-        cwd_folder = "Casanovo"
+        # denovo_args = ["python", "-m", "Casanovo.casanovo", "sequence",
+        #                 "--model", model_path, 
+        #                 "--config", config_path,
+        #                 "--output", mztab_path.resolve(),
+        #                 mgf_file.resolve()]
+        # cwd_folder = Path(PureWindowsPath("./Casanovo").as_posix())
+        cwd_folder = Path(PureWindowsPath(".").as_posix())
     for i in range(len(denovo_args)):
             denovo_args[i] = str(denovo_args[i])
-    return (denovo_args, cwd_folder)
+    return (denovo_args, cwd_folder.resolve())
 
 # @profile
 def combine_denovo_output(directory, prefix, denovo_method, selection = 0.25):
@@ -97,10 +109,11 @@ def combine_denovo_output(directory, prefix, denovo_method, selection = 0.25):
             xx['mass_to_charge_err'] = [abs(xx['calc_mass_to_charge'][i] - xx['exp_mass_to_charge'][i]) for i in range(len(xx))]
             xx['pep_length'] = [len(re.split(r'(?<=.)(?=[A-Z])', peptide)) for peptide in xx['sequence']]
             xx['scan'] = [f'{filename.stem.replace("_denovo", "")}_ID={str(ID)}' for ID in xx['PSM_ID']]
-            xx = xx.loc[(xx['pep_length'] >= 10) & (xx['pep_length'] <= 30)]
 
             xx = xx.sort_values('search_engine_score[1]', ascending = False)
             xx = xx.head(floor(selection * floor(len(xx.index))))
+            xx = xx[(xx['pep_length'] >= 10) & (xx['pep_length'] <= 30)]
+            xx = xx[['C' not in x for x in xx['sequence']]]
             
             xx['rank'] = list(range(1, len(xx.index) + 1))
             grouped = xx.groupby('sequence')
