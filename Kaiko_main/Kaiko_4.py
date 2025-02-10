@@ -112,7 +112,16 @@ def prepare_gff_line(accession_annotations):
     references = accession_annotations['db_references']
 
     def add_to_line(gff_line, category, name):
-        if category in references.keys():
+        if category == 'cog' and 'eggNOG' in references.keys():
+            annotations = list(references['eggNOG'].keys())
+            annotations = [x for x in annotations if 'COG' in x]
+            if len(annotations) > 0:
+                gff_line = f'{gff_line};{name}={annotations[0]}'
+                for ann in annotations[1:]:
+                    gff_line = f'{gff_line},{ann}'
+            else:
+                gff_line = f'{gff_line};{name}=NA'
+        elif category in references.keys():
             annotations = list(references[category].keys())
             gff_line = f'{gff_line};{name}={annotations[0]}'
             for ann in annotations[1:]:
