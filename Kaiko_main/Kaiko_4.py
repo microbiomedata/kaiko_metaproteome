@@ -70,7 +70,10 @@ def write_proteome_and_annotations(taxid, ref_fasta, output_fasta, output_gff, l
         loaded_fasta = fasta_paths[0].open('rb').read()
         split_fasta = loaded_fasta.split(b'\n>')
         fasta_dict = dict()
-        for fasta_data in split_fasta:
+
+        accession = split_fasta[0].split(b'|')[1].decode('utf-8')
+        fasta_dict[accession] = split_fasta[0] + b'\n'
+        for fasta_data in split_fasta[1:]:
             accession = fasta_data.split(b'|')[1].decode('utf-8')
             fasta_dict[accession] = b'>' + fasta_data + b'\n'
         fasta_accessions = set(fasta_dict.keys())
