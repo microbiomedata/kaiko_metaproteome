@@ -12,13 +12,12 @@ denovo:
 diamond tally:
   cached: false
   db_pattern: OX
-  diamond_database: E:/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db
+  diamond_database: Kaiko_volume/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db
   diamond_folder: Kaiko_volume/Kaiko_stationary_files/diamond
   mode: member
-  ncbi_taxa_folder: E:/Kaiko_stationary_files/ncbi_taxa
+  ncbi_taxa_folder: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa
   pident: 100
   score: null
-  taxa_stats: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa/uniref100_member_stats_with_lineage.txt
 general:
   output_dir: Kaiko_volume
 taxa to fasta:

@@ -25,11 +25,11 @@ config['denovo'] = {'method' : "PNNL_Casanovo",
 
 
 config['diamond tally'] = {'diamond_folder' : 'Kaiko_volume/Kaiko_stationary_files/diamond',
-                           'ncbi_taxa_folder' : 'E:/Kaiko_stationary_files/ncbi_taxa',
+                           'ncbi_taxa_folder' : 'Kaiko_volume/Kaiko_stationary_files/ncbi_taxa',
                            'mode' : 'member',
                           #  'fout' : 'Kaiko_volume/Kaiko_intermediate/kaiko_prediction_top_taxa.csv',
                           #  'diamond_output' : "Kaiko_volume/Kaiko_intermediate/denovo_output/diamond_search_output.dmd",
-                           'diamond_database' : 'E:/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db',
+                           'diamond_database' : 'Kaiko_volume/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db',
                         #    'n_protein_cutoff' : 30000000,  ## Not important when using ref proteomes (default)
                            'cached' : False,
                            'db_pattern' : 'OX',
