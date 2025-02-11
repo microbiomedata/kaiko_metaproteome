@@ -246,8 +246,10 @@ def get_proteome_and_annotations(taxid, process_name):
         with annotations_path.open('rb') as f:
             data = f.read()
             all_annotations = orjson.loads(data)
+
+    log_buffer, link_tables_dict = fetch_ko_linktable(all_annotations, log_buffer)
     log_buffer = check_integrity(accessions, all_annotations, log_buffer)
-    out = (taxid, all_annotations, annotations_path, fasta_content, proteome_path, log_buffer)
+    out = (taxid, all_annotations, annotations_path, fasta_content, proteome_path, link_tables_dict, log_buffer)
     return out
 
 def download_(taxids, out_dict, process_name):
@@ -285,6 +287,47 @@ def download_proteome(urls, log_buffer):
     else:
         log_buffer[len(log_buffer)] = f'No additional additional fasta found.'
     return fasta_content, accessions, log_buffer
+
+def fetch_ko_linktable(all_annotations, log_buffer):
+    ko_api = 'https://rest.kegg.jp/link/ko/'
+    kegg_entries = dict()
+    def extract_kegg_(entry):
+        if isinstance(entry, dict):
+            if 'db_references' in entry.keys():
+                if 'KEGG' in entry['db_references'].keys():
+                    return list(entry['db_references']['KEGG'].keys())
+                else:
+                    return None
+            else:
+                return None
+        else:
+            None
+        
+    kegg_entries = [extract_kegg_(entry) for entry in all_annotations.values()]
+    kegg_entries = [k for k in kegg_entries if k is not None]
+    kegg_entries = [x for k in kegg_entries for x in k if k is not None]
+    kegg_dbs = list(set([x.split(':')[0] for x in kegg_entries]))
+    link_tables_dict = dict()
+    if kegg_dbs == []:
+        log_buffer[len(log_buffer)] = f'No KEGG annotations in the xml file.'
+    for db in kegg_dbs:
+        url = f'{ko_api}{db}'
+        linkdf_path = Path(FLAGS.out_dir) / f'ko_link_tables/ko_{db}_link.txt'
+        if not linkdf_path.exists():
+            linkdf_path.parent.mkdir(parents=True, exist_ok=True)
+            request = requests.get(url, stream = True)
+            if request.status_code == 404:
+                log_buffer[len(log_buffer)] = f'Link table not found (404) at url {url}. Please check manually.'
+            elif request.status_code != 200:
+                log_buffer[len(log_buffer)] = f'Encountered {request.status_code} error when fetching link table from {url}.'
+            else:
+                log_buffer[len(log_buffer)] = f'Found the ko and {db} link table. Writing to {linkdf_path.name}.'
+                link_tables_dict[db] = (request.content, linkdf_path)
+        else:
+            log_buffer[len(log_buffer)] = f'Already downloaded the ko to {db} link table.'
+    return log_buffer, link_tables_dict
+            
+        
 
 def check_integrity(accessions, all_annotations, log_buffer):
     # actual_n_proteins = 0
@@ -324,6 +367,7 @@ def check_integrity(accessions, all_annotations, log_buffer):
     log_buffer[len(log_buffer)] = f'Found {len(annotation_accessions)} accessions in json.'
     if annotation_accessions != set(accessions):
         log_buffer[len(log_buffer)] = f'Failed integrity check. Annotation accessions and fasta accessions are not the same.'
+        log_buffer[len(log_buffer)] = f'These are the accessions which are not in the intersection: {annotation_accessions-set(accessions)} {annotation_accessions-set(accessions)}.'
     else:
         log_buffer[len(log_buffer)] = f'The same accessions are present in both.'
     return log_buffer
@@ -356,7 +400,7 @@ all_process = []
 process_names = []
 taxa_list = list(proteome_table.index)
 shuffle(taxa_list)
-# taxa_list = []
+taxa_list = [644284]
 if __name__ == '__main__':
     still_working = True
     manager = multiprocessing.Manager()
@@ -383,7 +427,7 @@ if __name__ == '__main__':
                 process_names = [x for x in process_names if x is not process_name]
                 this_out = out_dict[process_name]
                 for out in this_out.values():
-                    (taxid, all_annotations, annotations_path, fasta_content, proteome_path, log_buffer) = out
+                    (taxid, all_annotations, annotations_path, fasta_content, proteome_path, link_tables_dict, log_buffer) = out
                     N_parsed = N_parsed + 1
                     ## Write annotations
                     if annotations_path.exists():
@@ -406,6 +450,11 @@ if __name__ == '__main__':
                     else:
                         print(f'Proteome from {taxid} not found. This is proteome number {N_parsed}.')
                         failed_taxa += [taxid]
+                    ## Write KO link tables
+                    for x in link_tables_dict.values():
+                        (content, link_df_path) = x
+                        with link_df_path.open('wb') as file:
+                            file.write(content)       
                     ## Write log
                     with log_path.open('a') as output:
                         for new_line in log_buffer.values():
