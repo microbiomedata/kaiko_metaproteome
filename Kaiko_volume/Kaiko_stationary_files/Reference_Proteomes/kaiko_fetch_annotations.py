@@ -347,7 +347,7 @@ def fetch_ko_linktable(all_annotations, log_buffer):
             if 'db_references' in entry.keys():
                 if 'KEGG' in entry['db_references'].keys():
                     kegg_anns = [x for x in list(entry['db_references']['KEGG'].keys()) if x in ko_dict.keys()]
-                    addition = {ko_dict[kegg_ann] : {"id" : ko_dict[kegg_ann], "entry name" : None, "mapped_from" : kegg_ann} for kegg_ann in kegg_anns}
+                    addition = {ko_dict[kegg_ann] : {"id" : ko_dict[kegg_ann], "mapped_from" : kegg_ann} for kegg_ann in kegg_anns}
                     if len(addition) > 0:
                         entry['db_references']['ko'] = addition
                         all_annotations[accession] = entry
