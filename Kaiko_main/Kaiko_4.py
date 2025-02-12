@@ -128,6 +128,8 @@ def prepare_gff_line(accession_annotations):
             annotations = list(references[category].keys())
             gff_line = f'{gff_line};{name}={annotations[0]}'
             for ann in annotations[1:]:
+                if category == 'ko':
+                    ann = ann.replace('ko', 'KO')
                 gff_line = f'{gff_line},{ann}'
         else:
             gff_line = f'{gff_line};{name}=NA'
