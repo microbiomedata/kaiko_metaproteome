@@ -395,24 +395,29 @@ class taxa_cache():
         self.all_caches = [x for x in self.all_caches if x != []]
         self.current_cache = 0
         self.finished = False
+        self.maybe_finished = False
         self.failed_taxa_ = {}
-        self.super_failed = {}
+        self.super_failed = set({})
         self.N_retries = N_retries
+        self.past_caches = dict()
 
-    def next_cache(self):
+    def next_cache(self, processname):
         if self.current_cache != len(self.all_caches):
             out = (self.all_caches[self.current_cache], self.failed_taxa_)
             self.current_cache += 1
+            self.past_caches[processname] = out[0]
         else:
             out = None
-            self.finished = True
+            if all([x > self.N_retries for x in self.failed_taxa_.values()]) and self.maybe_finished:
+                self.finished = True
+            self.maybe_finished = True
         return out
     
     def failed_taxa(self, taxid):
         if taxid in self.failed_taxa_.keys():
             self.failed_taxa_[taxid] += 1
             if self.failed_taxa_[taxid] > self.N_retries:
-                self.super_failed += {taxid}
+                self.super_failed = self.super_failed | {taxid}
         else:
             self.failed_taxa_[taxid] = 1
         if taxid not in self.super_failed:
@@ -432,23 +437,27 @@ taxa_list = list(proteome_table.index)
 shuffle(taxa_list)
 # taxa_list = [3702]
 # taxa_list = [2695836]
+# taxa_list = [1892558, 2053570]
 if __name__ == '__main__':
     still_working = True
     manager = multiprocessing.Manager()
     out_dict = manager.dict()
-    taxa_cache_ = taxa_cache(taxa_list, cache_size = int(FLAGS.cache_size))
+    taxa_cache_ = taxa_cache(taxa_list, cache_size=int(FLAGS.cache_size))
     N_parsed = 0
 
     while still_working:
         if len(all_process) < N_processes:
-            database_taxids = taxa_cache_.next_cache()
             process_name = next_name(N_processes, process_names)[-1]
+            database_taxids = taxa_cache_.next_cache(process_name)
             process_args = (database_taxids, out_dict, process_name)
             if database_taxids is not None:
                 new_process = multiprocessing.Process(target = download_, args = process_args)
                 all_process = all_process + [new_process]
                 process_names = process_names + [process_name]
                 new_process.start()
+            else:
+                # print('Transitioning to failed taxids once other processes finish. N_process set to 1.')
+                N_processes = 1
         for process in all_process:
             process.join(timeout = 0.1)
         for process, process_name in zip(all_process, process_names):
@@ -456,40 +465,51 @@ if __name__ == '__main__':
                 all_process = [x for x in all_process if x is not process]
                 process_names = [x for x in process_names if x is not process_name]
                 this_out = out_dict[process_name]
-                for out in this_out.values():
-                    (taxid, all_annotations, annotations_path, fasta_content, proteome_path, link_tables_dict, log_buffer) = out
-                    N_parsed = N_parsed + 1
-                    ## Write annotations
-                    if annotations_path.exists():
-                        print(f'Annotations from {taxid} already exist. This is proteome number {N_parsed}.')
-                    elif len(all_annotations) != 0:
-                        print(f'Saving annotations from {taxid} into {str(annotations_path)}. This is proteome number {N_parsed}.')
-                        with open(annotations_path, "wb") as outfile: 
-                            outfile.write(orjson.dumps(all_annotations)) 
-                    else:
-                        print(f'Annotations from {taxid} not found. This is proteome number {N_parsed}.')
+                if process.exitcode != 0:
+                    taxids = taxa_cache_.past_caches[process_name]
+                    for taxid in taxids:
                         taxa_cache_.failed_taxa(taxid)
-                    ## Write proteome
-                    if proteome_path.exists():
-                        print(f'Proteome from {taxid} already exists. This is proteome number {N_parsed}.')
-                    elif fasta_content != []:
-                        print(f'Saving proteome from {taxid} into {str(proteome_path)}. This is proteome number {N_parsed}.')
-                        with open(proteome_path, 'wb') as outfile:
-                            for read_content in fasta_content:
-                                outfile.write(read_content)
-                    else:
-                        print(f'Proteome from {taxid} not found. This is proteome number {N_parsed}.')
-                        taxa_cache_.failed_taxa(taxid)
-                    ## Write KO link tables
-                    for x in link_tables_dict.values():
-                        (content, linkdf_path) = x
-                        with linkdf_path.open('wb') as file:
-                            file.write(content)       
-                    ## Write log
-                    with log_path.open('a') as output:
-                        for new_line in log_buffer.values():
-                            output.write(f'{new_line}\n')
-                        output.write('======================================================\n')
+                        with log_path.open('a') as output:
+                            output.write(f'A subprocess failed. The taxids it was working on ({taxids}) will be retried.\n')
+                            output.write('======================================================\n')
+                else:
+                    for out in this_out.values():
+                        taxa_failed = False
+                        (taxid, all_annotations, annotations_path, fasta_content, proteome_path, link_tables_dict, log_buffer) = out
+                        N_parsed = N_parsed + 1
+                        ## Write annotations
+                        if annotations_path.exists():
+                            print(f'Annotations from {taxid} already exist. This is proteome number {N_parsed}.')
+                        elif len(all_annotations) != 0:
+                            print(f'Saving annotations from {taxid} into {str(annotations_path)}. This is proteome number {N_parsed}.')
+                            with open(annotations_path, "wb") as outfile: 
+                                outfile.write(orjson.dumps(all_annotations)) 
+                        else:
+                            print(f'Annotations from {taxid} not found. This is proteome number {N_parsed}.')
+                            taxa_failed = True
+                        ## Write proteome
+                        if proteome_path.exists():
+                            print(f'Proteome from {taxid} already exists. This is proteome number {N_parsed}.')
+                        elif fasta_content != []:
+                            print(f'Saving proteome from {taxid} into {str(proteome_path)}. This is proteome number {N_parsed}.')
+                            with open(proteome_path, 'wb') as outfile:
+                                for read_content in fasta_content:
+                                    outfile.write(read_content)
+                        else:
+                            print(f'Proteome from {taxid} not found. This is proteome number {N_parsed}.')
+                            taxa_failed = True
+                        ## Write KO link tables
+                        if taxa_failed:
+                            taxa_cache_.failed_taxa(taxid)
+                        for x in link_tables_dict.values():
+                            (content, linkdf_path) = x
+                            with linkdf_path.open('wb') as file:
+                                file.write(content)       
+                        ## Write log
+                        with log_path.open('a') as output:
+                            for new_line in log_buffer.values():
+                                output.write(f'{new_line}\n')
+                            output.write('======================================================\n')
         if len(all_process) == 0 and taxa_cache_.finished:
                 still_working = False
                 failed_taxa = list(taxa_cache_.super_failed)
@@ -499,14 +519,14 @@ if __name__ == '__main__':
                             output.write(f'\n')
                             output.write('======================================================\n')
                             output.write(f'All taxa downloaded!\n')
-                            output.write(f'The following taxids failed to downloaded initially, but were successfully downloaded in under {taxa_cache_.N_retries}\n')
+                            output.write(f'The following taxids failed to downloaded initially, but all were successfully downloaded in under {taxa_cache_.N_retries} retries.\n')
                             output.write(f'{taxa_cache_.failed_taxa_}\n')
                             output.write('======================================================\n')
                 else:
-                    print(f'These taxa failed to download after 10 retries! {failed_taxa}')
+                    print(f'These taxa failed to download after {taxa_cache_.N_retries} retries! {failed_taxa}')
                     with log_path.open('a') as output:
                             output.write(f'\n')
                             output.write('======================================================\n')
-                            output.write(f'The following taxids failed to download after {taxa_cache_.N_retries} retries! {failed_taxa}\n')
+                            output.write(f'The following taxids failed to download after {taxa_cache_.N_retries+1} attempts! {failed_taxa}\n')
                             output.write('======================================================\n')
 
