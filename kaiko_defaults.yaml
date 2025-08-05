@@ -10,25 +10,17 @@ denovo:
   profile: false
   topk: false
 diamond tally:
+  DB: Reference Proteomes
   cached: false
-  db_pattern: OX
   diamond_database: Kaiko_volume/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db
   diamond_folder: Kaiko_volume/Kaiko_stationary_files/diamond
+  member_csv: Kaiko_volume/Kaiko_stationary_files/Uniref100/uniref100_member_taxa_tbl.csv
   mode: member
-  ncbi_taxa_folder: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa
   pident: 100
   score: null
 general:
   output_dir: Kaiko_volume
 taxa to fasta:
-  annotation_cats:
-  - GO
-  - KEGG
-  - Reactome
-  - verstion_date
-  - version
-  - gene_name
-  - description
   kingdom_list: ''
   ref_fasta: C:/Kaiko_stationary_files/Reference_Proteomes
   target_coverage: 50

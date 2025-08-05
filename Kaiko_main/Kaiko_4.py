@@ -13,8 +13,8 @@ from pathlib import PureWindowsPath, Path
 byte2gigabyte = 1073741824
 EXCLUDED_RANKS = ['family','order','class','phylum','kingdom','superkingdom']
 # @profile
-def aggregate_fasta(ref_fasta, kaiko_tally, output_fasta_path, output_gff_path, sheet_name, target_coverage,
-                    kingdom_list):
+def aggregate_fasta(ref_fasta, kaiko_tally, member_csv, output_fasta_path, output_gff_path, sheet_name, target_coverage,
+                    kingdom_list, DB, mode):
     df = pd.read_excel(kaiko_tally, sheet_name=sheet_name)
     rank_conditions = ~df['rank'].isin(EXCLUDED_RANKS)
 
@@ -49,14 +49,17 @@ def aggregate_fasta(ref_fasta, kaiko_tally, output_fasta_path, output_gff_path, 
 
     print(f'collecting fasta from {len(taxids)} taxa\n')
 
-    write_log = output_fasta_path.parent / 'test_log.txt'
-    with output_fasta_path.open('wb') as output_fasta:
-        with output_gff_path.open('w') as output_gff:
-            with write_log.open('w') as log:
-                for taxid in taxids:
-                    log_dict = write_proteome_and_annotations(taxid, ref_fasta, output_fasta, output_gff, dict())
-                    for line in log_dict.values():
-                        log.write(f'{line}\n')
+    if DB == "Uniref100":
+        uniref_fasta(taxids, output_fasta_path, ref_fasta, member_csv, mode)
+    else:
+        write_log = output_fasta_path.parent / 'test_log.txt'
+        with output_fasta_path.open('wb') as output_fasta:
+            with output_gff_path.open('w') as output_gff:
+                with write_log.open('w') as log:
+                    for taxid in taxids:
+                        log_dict = write_proteome_and_annotations(taxid, ref_fasta, output_fasta, output_gff, dict())
+                        for line in log_dict.values():
+                            log.write(f'{line}\n')
 
 
 def write_proteome_and_annotations(taxid, ref_fasta, output_fasta, output_gff, log_dict):
@@ -126,10 +129,10 @@ def prepare_gff_line(accession_annotations):
                 gff_line = f'{gff_line};{name}=NA'
         elif category in references.keys():
             annotations = list(references[category].keys())
+            if category == 'ko':
+                    annotations = [ann.replace('ko', 'KO') for ann in annotations]
             gff_line = f'{gff_line};{name}={annotations[0]}'
             for ann in annotations[1:]:
-                if category == 'ko':
-                    ann = ann.replace('ko', 'KO')
                 gff_line = f'{gff_line},{ann}'
         else:
             gff_line = f'{gff_line};{name}=NA'
@@ -144,4 +147,70 @@ def prepare_gff_line(accession_annotations):
     gff_line = gff_line.replace('\n', '')
     gff_line = f'{gff_line}\n'
     return gff_line
+
+
+def uniref_fasta(taxids, output_fasta_path, ref_fasta, member_csv, mode):
+    ofile = open(output_fasta_path, 'w')
+    key_for_taxid = 'TaxID'
+    num_seqs = 0
+    start_time = time.time()
+    if mode == "member":
+        uniref_ids = get_uniref_ids(member_csv, [str(x) for x in taxids])
+    
+    with gzip.open(ref_fasta, 'rb') as file:
+        try:
+            is_selected = False
+            for bline in file:
+            
+                # if line.startswith('>UniRef'):
+                if bline[0] == 62:  # to find `>`
+                    num_seqs += 1
+                    line = bline.decode("utf-8")
+                    if mode == "member":
+                        uniref_id = line.split(' ')[0].split('>')[1]
+                        if uniref_id in ["", "N/A"]:
+                            is_selected = False
+                        elif uniref_id in uniref_ids.keys():
+                            is_selected = True
+                            ofile.write(line)
+                        else:
+                            is_selected = False
+                    elif mode == "common":
+                        taxid = line.split(key_for_taxid)[1].split(' ')[0]
+                        if taxid in ["", "N/A"]:
+                            is_selected = False
+                        elif int(taxid) in taxids:
+                            is_selected = True
+                            ofile.write(line)
+                        else:
+                            is_selected = False
+                else:
+                    if is_selected:
+                        line = bline.decode("utf-8")
+                        ofile.write(line)
+                if (num_seqs % 10000000) == 0:
+                    print("{}M sequences has been parsed. {:.1f}min".format(num_seqs//1e6, (time.time()-start_time)/60))
+        except Exception as e:
+            print(line, e)
+
+    ofile.close()
+
+
+def get_uniref_ids(member_tbl_file, taxids):
+    chunksize = 1000000
+
+    stime = time.time()
+    uniref_ids = dict()
+    num_iters = 0
+    for chunk in pd.read_csv(member_tbl_file, chunksize=chunksize):
+        chunk_ids = chunk.uid.tolist()
+        for ii, members in enumerate(chunk.members.tolist()):
+            members = members.split(':')
+            taxids_ = [x in taxids for x in members]
+            if any(taxids_):
+                uniref_ids[chunk_ids[ii]] = taxids_
+        num_iters += 1
+    with open(Path("protein_to_taxaid"), "wb") as outfile: 
+        outfile.write(orjson.dumps(uniref_ids)) 
+    return uniref_ids
 

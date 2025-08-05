@@ -10,7 +10,7 @@ from openpyxl import load_workbook
 
 
 # @profile    
-def run_diamond_tally(diamond_output, filterby, ncbi_taxa_folder, mode, fout, detailed_fout, db_pattern):
+def run_diamond_tally(diamond_output, filterby, member_csv, mode, fout, detailed_fout, DB):
     # taxa_stats = pd.read_csv(taxa_stats_path, sep = '\t')
 
     if mode=="member":
@@ -34,6 +34,10 @@ def run_diamond_tally(diamond_output, filterby, ncbi_taxa_folder, mode, fout, de
         ############################################################
         print("Filtering by quality and taxa...")
         filtered_dmd = dmd_filter(dmd, filterby={})
+        if DB == 'Uniref100':
+            db_pattern = 'TaxID'
+        elif DB == 'reference_proteomes':
+            db_pattern = 'OX'
         filtered_dmd = collect_taxid(filtered_dmd, db_pattern)
         filtered_dmd['uniref_id'] = [i[0] for i in filtered_dmd.uniref_seq.str.split(" ", n = 1)]
 
@@ -49,10 +53,10 @@ def run_diamond_tally(diamond_output, filterby, ncbi_taxa_folder, mode, fout, de
         # retrieve UniRef100 representative taxa and its members
         ############################################################
         # print("Retrieving taxa lineage information...")
-        unique_unirefs = set(filtered_dmd.uniref_id.drop_duplicates())
         if db_pattern == 'TaxID':
-            taxa_member_tbl = get_taxa_members(ncbi_taxa_folder / 'uniref100_member_taxa_tbl.csv',
-                                            unique_unirefs)  
+            # unique_unirefs = set(filtered_dmd.uniref_id.drop_duplicates())
+            unique_unirefs = {x:1 for x in filtered_dmd.uniref_id.drop_duplicates().tolist()}
+            taxa_member_tbl = get_taxa_members(member_csv, unique_unirefs)  
             ############################################################
             # merge
             ############################################################
@@ -69,9 +73,12 @@ def run_diamond_tally(diamond_output, filterby, ncbi_taxa_folder, mode, fout, de
             uids = merged.uid.tolist()
             commons = merged.common_taxa.tolist()
             pidents = merged.pident.tolist()
+            align_lens = merged.align_len.tolist()
+            scores = merged.score.tolist()
             for ii, members in enumerate(merged.members.str.split(":").tolist()):
                 for mm in members:
-                    unique_members.append({"scan":scanids[ii], "uid":uids[ii], "member_taxa":int(mm), "common_taxa":int(commons[ii]), "pident":pidents[ii]})
+                    unique_members.append({"scan":scanids[ii], "uid":uids[ii], "protein":uids[ii].replace('UniRef100_', ''),"member_taxa":int(mm), "common_taxa":int(commons[ii]), 
+                                           "pident":pidents[ii], "align_len":align_lens[ii], "score":scores[ii]})
             print("  #members:{}".format(len(unique_members)))
             members_df = pd.DataFrame(unique_members)
 
@@ -210,7 +217,10 @@ def get_taxa_members(member_tbl_file, unique_unirefs):
     dfs = []
     num_iters = 0
     for chunk in pd.read_csv(member_tbl_file, chunksize=chunksize):
-        tdf = chunk[chunk.uid.isin(unique_unirefs)]
+        # if num_iters > 10:
+        #     break
+        # else:
+        tdf = chunk[chunk.uid.isin(unique_unirefs.keys())]
         dfs.append(tdf)
         num_iters += 1
 
@@ -255,6 +265,7 @@ def make_top_taxa_df(detailed_output, taxa_col):
     # df = pd.concat([top_taxa, taxa_stats], join='inner', axis=1)
     # df = top_taxa.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
     df = top_taxa
+    df['proportion'] = df['hits']/df['hits'].sum()
     df['running_coverage'] = df['hits'].cumsum()/df['hits'].sum()
     append = pd.DataFrame({'taxid' : [],
                         'tax_name' : [],
@@ -262,6 +273,7 @@ def make_top_taxa_df(detailed_output, taxa_col):
                         'rank' : [],
                         'hits' : [],
                         'n_protein' : [],
+                        'proportion' : [],
                         'running_coverage' : [],
                         'notes' : []})
     df['notes'] = 'Primary taxa identified by Kaiko. \'hits\' denotes tally2 hits'

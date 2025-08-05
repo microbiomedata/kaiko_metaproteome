@@ -45,7 +45,7 @@ for section in config_user.keys():
 working_dir = Path(Path('.').resolve().as_posix())
 mgf_dir = Path(PureWindowsPath(config['denovo']['mgf_dir']).as_posix())
 output_dir = Path(PureWindowsPath(config['general']['output_dir']).as_posix())
-ncbi_taxa_folder = Path(PureWindowsPath(config['diamond tally']['ncbi_taxa_folder']).as_posix())
+member_csv = Path(PureWindowsPath(config['diamond tally']['member_csv']).as_posix())
 ref_fasta = Path(PureWindowsPath(config['taxa to fasta']['ref_fasta']).as_posix())
 diamond_folder = Path(PureWindowsPath(config['diamond tally']['diamond_folder']).as_posix())
 diamond_database = Path(PureWindowsPath(config['diamond tally']['diamond_database']).as_posix())
@@ -55,11 +55,6 @@ diamond_database = Path(PureWindowsPath(config['diamond tally']['diamond_databas
 
 # ref_proteome_log = Path(PureWindowsPath(config['taxa to fasta']['ref_proteome_log']).as_posix())
 prefix = mgf_dir.name
-if config['diamond tally']['db_pattern'] == 'TaxID':
-    mode = 'uniref100'
-elif config['diamond tally']['db_pattern'] == 'OX':
-    mode = 'ref_prot'
-
 ## Creating drectories in output folder:
 denovout_dir = output_dir / ('Kaiko_output/' + prefix + '/denovo_output/')
 intermediate_dir = output_dir / ("Kaiko_output/" + prefix)
@@ -154,9 +149,9 @@ if (config['denovo']['profile']):
 # top_strains = str(config['taxa to fasta']['top_strains'])
 # benchmark = config['diamond tally']['benchmark']
 # align_len = int(config['diamond tally']['align_len'])
-if config['diamond tally']['db_pattern'] == 'OX':
+if config['diamond tally']['DB'] == 'reference_proteomes':
     db_name = 'ref_prot'
-elif config['diamond tally']['db_pattern'] == 'TaxID':
+elif config['diamond tally']['DB'] == 'Uniref100':
     db_name = 'uniref100'
 # suffix = f'alignlen_{align_len}'
 # if benchmark:
@@ -219,10 +214,10 @@ else:
 # Step 4. Tallying the diamond results
 run_diamond_tally(diamond_search_out, 
                   filterby,
-                  ncbi_taxa_folder, 
+                  member_csv, 
                   config['diamond tally']['mode'], 
                   species_tally_path, detailed_fout,
-                  config['diamond tally']['db_pattern'])
+                  config['diamond tally']['DB'])
 
 
 ## Step 5. Putting together the final fasta file.
@@ -240,10 +235,11 @@ output_fasta_path = final_dir / (prefix + f'_kaiko_fasta_pident_{pident}_coverag
 output_annotation_path = final_dir / (prefix + f'_kaiko_fasta_pident_{pident}_coverage_{target_coverage}.gff')
 
 aggregate_fasta(ref_fasta,
-                species_tally_path,
+                species_tally_path, member_csv,
                 output_fasta_path, output_annotation_path,
                 sheet_name, target_coverage,
-                kingdom_list)
+                kingdom_list, config['diamond tally']['DB'], 
+                config['diamond tally']['mode'])
 
 # aggregate_annotations()
 

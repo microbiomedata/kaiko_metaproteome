@@ -1,6 +1,7 @@
 import re
 import os
 import time
+import datetime
 import requests
 import pandas as pd
 import datetime
@@ -38,17 +39,38 @@ parser.add_argument(
 FLAGS = parser.parse_args()
 ########################################################
 
+def download_proteome_table(url = "https://rest.uniprot.org/proteomes/stream?download=true&fields=upid%2Corganism%2Corganism_id%2Cprotein_count%2Cbusco%2Ccpd%2Ccomponents%2Cmnemonic%2Clineage%2Cgenome_assembly%2Cgenome_representation&format=tsv&query=%28*%29+AND+%28proteome_type%3A1%29"):
+    try:
+        response = requests.get(url, stream=True)
+        assert response.status_code == 200
+        date = datetime.date.today().strftime("%Y-%m-%d").replace("-", "_")
+        save_path = Path(f"proteomes_AND_proteome_type_1_{date}.tsv")
+        with save_path.open('wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+            print(f"Downloaded the latest reference proteome table to {save_path.stem}.")
+    except:
+        print(f"Failed to download the latest reference proteome table. Please download the latest version from the following url\n{url}")
+    return save_path
+
+if FLAGS.proteomes_table is None:
+    name_pattern = "proteomes_AND_proteome_type_1_"
+    possible_paths = list(Path(".").glob(f"{name_pattern}*.tsv"))
+    if len(possible_paths) > 0:
+        last_date = max([x.stem.replace(name_pattern, "") for x in possible_paths])
+        referece_proteomes_table_path = Path(f"{name_pattern}{last_date}.tsv")
+    else:
+        referece_proteomes_table_path = download_proteome_table()
+else:
+    referece_proteomes_table_path = Path(FLAGS.proteomes_table)
+
 N_processes = int(FLAGS.N_process)
 suffix = str(datetime.datetime.now()).replace(':', '')
 log_path = Path(FLAGS.out_dir) / f'fetch_annotation_log_{suffix}.txt'
-database_log = Path(FLAGS.out_dir) / 'database_log.xlsx'
-referece_proteomes_table_path = Path(FLAGS.proteomes_table)
 proteome_table = pd.read_csv(referece_proteomes_table_path, sep = "\t")
 proteome_table = proteome_table.set_index('Organism Id')
 
 ### schema: https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot.xsd
-
-################## Functions to parse xml ##################
 
 def parse_accessions(entry, index_dict, entry_dict):
     assert 'accession' in index_dict.keys()
@@ -176,105 +198,10 @@ def parse_request_xml(request):
                 accession = new_dict['accession']['primary_accession']
                 proteome_dict[accession] = new_dict
             else:
-                assert entry.tag.replace('{http://uniprot.org/uniprot}', '') == 'copyright'
+                assert entry.tag.replace('{https://uniprot.org/uniprot}', '') == 'copyright'
                 proteome_dict['copyright'] = entry.text
 
     return proteome_dict
-
-## Add ko annotations using the KEGG species annotation
-def fetch_ko_linktable(all_annotations, log_buffer):
-    ko_api = 'https://rest.kegg.jp/link/ko/'
-    kegg_entries = dict()
-    def extract_kegg_(entry):
-        if isinstance(entry, dict):
-            if 'db_references' in entry.keys():
-                if 'KEGG' in entry['db_references'].keys():
-                    return list(entry['db_references']['KEGG'].keys())
-                else:
-                    return None
-            else:
-                return None
-        else:
-            None
-        
-    kegg_entries = [extract_kegg_(entry) for entry in all_annotations.values()]
-    kegg_entries = [k for k in kegg_entries if k is not None]
-    kegg_entries = [x for k in kegg_entries for x in k if k is not None]
-    kegg_dbs = list(set([x.split(':')[0] for x in kegg_entries]))
-    link_tables_dict, link_tables_dict_ = dict(), dict()
-    if kegg_dbs == []:
-        log_buffer[len(log_buffer)] = f'No KEGG annotations in the xml file.'
-    for db in kegg_dbs:
-        url = f'{ko_api}{db}'
-        linkdf_path = Path(FLAGS.out_dir) / f'ko_link_tables/ko_{db}_link.txt'
-        if not linkdf_path.exists():
-            linkdf_path.parent.mkdir(parents=True, exist_ok=True)
-            request = requests.get(url, stream = True)
-            if request.status_code == 404:
-                log_buffer[len(log_buffer)] = f'Link table not found (404) at url {url}. Please check manually.'
-            elif request.status_code != 200:
-                log_buffer[len(log_buffer)] = f'Encountered {request.status_code} error when fetching link table from {url}.'
-            else:
-                log_buffer[len(log_buffer)] = f'Found the ko and {db} link table. Writing to {linkdf_path.name}.'
-                link_tables_dict[db] = (request.content, linkdf_path)
-                link_tables_dict_[db] = request.content
-        else:
-            log_buffer[len(log_buffer)] = f'Already downloaded the ko to {db} link table.'
-            with linkdf_path.open('rb') as file:
-                link_tables_dict_[db] = file.read()
-    ko_dict = dict()
-    for db in link_tables_dict_.keys():
-        links = [x.split(b'\t') for x in link_tables_dict_[db].split(b'\n')][:-1]
-        ko_dict = ko_dict | {x[0].decode('utf-8') : x[1].decode('utf-8') for x in links}
-    for accession, entry in all_annotations.items():
-        if isinstance(entry, dict):
-            if 'db_references' in entry.keys():
-                if 'KEGG' in entry['db_references'].keys():
-                    kegg_anns = [x for x in list(entry['db_references']['KEGG'].keys()) if x in ko_dict.keys()]
-                    addition = {ko_dict[kegg_ann] : {"id" : ko_dict[kegg_ann], "mapped_from" : kegg_ann} for kegg_ann in kegg_anns}
-                    if len(addition) > 0:
-                        entry['db_references']['ko'] = addition
-                        all_annotations[accession] = entry
-    return log_buffer, link_tables_dict, all_annotations
-
-################## Functions to parse fasta ##################
-
-def download_proteome(urls, log_buffer):
-    start_time = time.time() 
-    fasta_content = []
-    accessions = []
-    request = requests.get(urls[0], stream = True)
-    if request.status_code == 200:
-        log_buffer[len(log_buffer)] = f'Downloading proteome from {urls[0]}.'
-        with gzip.open(request.raw, 'rb') as file:
-            read_content = file.read()
-            fasta_content += [read_content]
-            # xx = read_content.split(b'|')
-            # accessions += [xx[i].decode('utf-8') for i in range(len(xx)) if i % 2 == 1]
-            split_fasta = read_content.split(b'\n>')
-            accession = split_fasta[0].split(b'|')[1].decode('utf-8')
-            accessions += [accession] + [fasta_data.split(b'|')[1].decode('utf-8') for fasta_data in split_fasta[1:]]
-            log_buffer[len(log_buffer)] = f'Took {time.time()-start_time} seconds to download proteome from {urls[0]}.'
-    else:
-        log_buffer[len(log_buffer)] = f'Proteome not found at {urls[0]}!!'
-    start_time = time.time()
-    request = requests.get(urls[1], stream = True)
-    if request.status_code == 200:
-        log_buffer[len(log_buffer)] = f'Downloading proteome from {urls[1]}.'
-        with gzip.open(request.raw, 'rb') as file:
-            read_content = file.read()
-            fasta_content += [read_content]
-            # xx = read_content.split(b'|')
-            # accessions += [xx[i].decode('utf-8') for i in range(len(xx)) if i % 2 == 1]
-            split_fasta = read_content.split(b'\n>')
-            accession = split_fasta[0].split(b'|')[1].decode('utf-8')
-            accessions += [accession] + [fasta_data.split(b'|')[1].decode('utf-8') for fasta_data in split_fasta[1:]]
-            log_buffer[len(log_buffer)] = f'Took {time.time()-start_time} seconds to download proteome from {urls[1]}.'
-    else:
-        log_buffer[len(log_buffer)] = f'No additional additional fasta found.'
-    return fasta_content, accessions, log_buffer
-
-################## Functions to download fasta and xml in parallel ##################
 
 def get_proteome_and_annotations(taxid, process_name, number_tried):
     log_buffer = dict()
@@ -349,6 +276,108 @@ def get_proteome_and_annotations(taxid, process_name, number_tried):
     out = (taxid, all_annotations, annotations_path, fasta_content, proteome_path, link_tables_dict, log_buffer)
     return out
 
+def download_(taxids, out_dict, process_name):
+    this_out = dict()
+    (taxids, failed_taxa_) = taxids
+    for taxid in taxids:
+        if taxid in failed_taxa_.keys():
+            out = get_proteome_and_annotations(taxid, process_name, failed_taxa_[taxid])
+        else:
+            out = get_proteome_and_annotations(taxid, process_name, 0)
+        this_out[taxid] = out
+    out_dict[process_name] = this_out
+
+def download_proteome(urls, log_buffer):
+    start_time = time.time() 
+    fasta_content = []
+    accessions = []
+    request = requests.get(urls[0], stream = True)
+    if request.status_code == 200:
+        log_buffer[len(log_buffer)] = f'Downloading proteome from {urls[0]}.'
+        with gzip.open(request.raw, 'rb') as file:
+            read_content = file.read()
+            fasta_content += [read_content]
+            # xx = read_content.split(b'|')
+            # accessions += [xx[i].decode('utf-8') for i in range(len(xx)) if i % 2 == 1]
+            split_fasta = read_content.split(b'\n>')
+            accession = split_fasta[0].split(b'|')[1].decode('utf-8')
+            accessions += [accession] + [fasta_data.split(b'|')[1].decode('utf-8') for fasta_data in split_fasta[1:]]
+            log_buffer[len(log_buffer)] = f'Took {time.time()-start_time} seconds to download proteome from {urls[0]}.'
+    else:
+        log_buffer[len(log_buffer)] = f'Proteome not found at {urls[0]}!!'
+    start_time = time.time()
+    request = requests.get(urls[1], stream = True)
+    if request.status_code == 200:
+        log_buffer[len(log_buffer)] = f'Downloading proteome from {urls[1]}.'
+        with gzip.open(request.raw, 'rb') as file:
+            read_content = file.read()
+            fasta_content += [read_content]
+            # xx = read_content.split(b'|')
+            # accessions += [xx[i].decode('utf-8') for i in range(len(xx)) if i % 2 == 1]
+            split_fasta = read_content.split(b'\n>')
+            accession = split_fasta[0].split(b'|')[1].decode('utf-8')
+            accessions += [accession] + [fasta_data.split(b'|')[1].decode('utf-8') for fasta_data in split_fasta[1:]]
+            log_buffer[len(log_buffer)] = f'Took {time.time()-start_time} seconds to download proteome from {urls[1]}.'
+    else:
+        log_buffer[len(log_buffer)] = f'No additional additional fasta found.'
+    return fasta_content, accessions, log_buffer
+
+def fetch_ko_linktable(all_annotations, log_buffer):
+    ko_api = 'https://rest.kegg.jp/link/ko/'
+    kegg_entries = dict()
+    def extract_kegg_(entry):
+        if isinstance(entry, dict):
+            if 'db_references' in entry.keys():
+                if 'KEGG' in entry['db_references'].keys():
+                    return list(entry['db_references']['KEGG'].keys())
+                else:
+                    return None
+            else:
+                return None
+        else:
+            None
+        
+    kegg_entries = [extract_kegg_(entry) for entry in all_annotations.values()]
+    kegg_entries = [k for k in kegg_entries if k is not None]
+    kegg_entries = [x for k in kegg_entries for x in k if k is not None]
+    kegg_dbs = list(set([x.split(':')[0] for x in kegg_entries]))
+    link_tables_dict, link_tables_dict_ = dict(), dict()
+    if kegg_dbs == []:
+        log_buffer[len(log_buffer)] = f'No KEGG annotations in the xml file.'
+    for db in kegg_dbs:
+        url = f'{ko_api}{db}'
+        linkdf_path = Path(FLAGS.out_dir) / f'ko_link_tables/ko_{db}_link.txt'
+        if not linkdf_path.exists():
+            linkdf_path.parent.mkdir(parents=True, exist_ok=True)
+            request = requests.get(url, stream = True)
+            if request.status_code == 404:
+                log_buffer[len(log_buffer)] = f'Link table not found (404) at url {url}. Please check manually.'
+            elif request.status_code != 200:
+                log_buffer[len(log_buffer)] = f'Encountered {request.status_code} error when fetching link table from {url}.'
+            else:
+                log_buffer[len(log_buffer)] = f'Found the ko and {db} link table. Writing to {linkdf_path.name}.'
+                link_tables_dict[db] = (request.content, linkdf_path)
+                link_tables_dict_[db] = request.content
+        else:
+            log_buffer[len(log_buffer)] = f'Already downloaded the ko to {db} link table.'
+            with linkdf_path.open('rb') as file:
+                link_tables_dict_[db] = file.read()
+    ko_dict = dict()
+    for db in link_tables_dict_.keys():
+        links = [x.split(b'\t') for x in link_tables_dict_[db].split(b'\n')][:-1]
+        ko_dict = ko_dict | {x[0].decode('utf-8') : x[1].decode('utf-8') for x in links}
+    for accession, entry in all_annotations.items():
+        if isinstance(entry, dict):
+            if 'db_references' in entry.keys():
+                if 'KEGG' in entry['db_references'].keys():
+                    kegg_anns = [x for x in list(entry['db_references']['KEGG'].keys()) if x in ko_dict.keys()]
+                    addition = {ko_dict[kegg_ann] : {"id" : ko_dict[kegg_ann], "mapped_from" : kegg_ann} for kegg_ann in kegg_anns}
+                    if len(addition) > 0:
+                        entry['db_references']['ko'] = addition
+                        all_annotations[accession] = entry
+    return log_buffer, link_tables_dict, all_annotations
+         
+    
 def check_integrity(accessions, all_annotations, log_buffer):
     if not isinstance(accessions, list):
         proteome_path = accessions
@@ -366,20 +395,7 @@ def check_integrity(accessions, all_annotations, log_buffer):
     else:
         log_buffer[len(log_buffer)] = f'The same accessions are present in both.'
     return log_buffer
-
-def download_(taxids, out_dict, process_name):
-    this_out = dict()
-    (taxids, failed_taxa_) = taxids
-    for taxid in taxids:
-        if taxid in failed_taxa_.keys():
-            out = get_proteome_and_annotations(taxid, process_name, failed_taxa_[taxid])
-        else:
-            out = get_proteome_and_annotations(taxid, process_name, 0)
-        this_out[taxid] = out
-    out_dict[process_name] = this_out    
-
-
-################## Functions to handle the splitting of tasks for multiprocess ##################
+    
 
 
 def next_name(N_processes, current_names):
@@ -395,69 +411,55 @@ class taxa_cache():
         self.all_caches = [x for x in self.all_caches if x != []]
         self.current_cache = 0
         self.finished = False
-        self.maybe_finished = False
         self.failed_taxa_ = {}
-        self.super_failed = set({})
+        self.super_failed = {}
         self.N_retries = N_retries
-        self.past_caches = dict()
 
-    def next_cache(self, processname):
+    def next_cache(self):
         if self.current_cache != len(self.all_caches):
             out = (self.all_caches[self.current_cache], self.failed_taxa_)
             self.current_cache += 1
-            self.past_caches[processname] = out[0]
         else:
             out = None
-            if all([x > self.N_retries for x in self.failed_taxa_.values()]) and self.maybe_finished:
-                self.finished = True
-            self.maybe_finished = True
+            self.finished = True
         return out
     
     def failed_taxa(self, taxid):
         if taxid in self.failed_taxa_.keys():
             self.failed_taxa_[taxid] += 1
             if self.failed_taxa_[taxid] > self.N_retries:
-                self.super_failed = self.super_failed | {taxid}
+                self.super_failed += {taxid}
         else:
             self.failed_taxa_[taxid] = 1
         if taxid not in self.super_failed:
             last_cache = self.all_caches[-1]
-            if len(last_cache) < self.cache_size and self.current_cache < len(self.all_caches):
+            if len(last_cache) < self.cache_size:
                 last_cache += [taxid]
                 self.all_caches[-1] = last_cache
             else:
                 self.all_caches += [[taxid]]
 
-
-################## Main loop ##################
-
 all_process = []
 process_names = []
 taxa_list = list(proteome_table.index)
 shuffle(taxa_list)
-# taxa_list = [3702]
-# taxa_list = [2695836]
-# taxa_list = [1892558, 2053570]
 if __name__ == '__main__':
     still_working = True
     manager = multiprocessing.Manager()
     out_dict = manager.dict()
-    taxa_cache_ = taxa_cache(taxa_list, cache_size=int(FLAGS.cache_size))
+    taxa_cache_ = taxa_cache(taxa_list, cache_size = int(FLAGS.cache_size))
     N_parsed = 0
 
     while still_working:
         if len(all_process) < N_processes:
+            database_taxids = taxa_cache_.next_cache()
             process_name = next_name(N_processes, process_names)[-1]
-            database_taxids = taxa_cache_.next_cache(process_name)
             process_args = (database_taxids, out_dict, process_name)
             if database_taxids is not None:
                 new_process = multiprocessing.Process(target = download_, args = process_args)
                 all_process = all_process + [new_process]
                 process_names = process_names + [process_name]
                 new_process.start()
-            else:
-                # print('Transitioning to failed taxids once other processes finish. N_process set to 1.')
-                N_processes = 1
         for process in all_process:
             process.join(timeout = 0.1)
         for process, process_name in zip(all_process, process_names):
@@ -465,51 +467,40 @@ if __name__ == '__main__':
                 all_process = [x for x in all_process if x is not process]
                 process_names = [x for x in process_names if x is not process_name]
                 this_out = out_dict[process_name]
-                if process.exitcode != 0:
-                    taxids = taxa_cache_.past_caches[process_name]
-                    for taxid in taxids:
+                for out in this_out.values():
+                    (taxid, all_annotations, annotations_path, fasta_content, proteome_path, link_tables_dict, log_buffer) = out
+                    N_parsed = N_parsed + 1
+                    ## Write annotations
+                    if annotations_path.exists():
+                        print(f'Annotations from {taxid} already exist. This is proteome number {N_parsed}.')
+                    elif len(all_annotations) != 0:
+                        print(f'Saving annotations from {taxid} into {str(annotations_path)}. This is proteome number {N_parsed}.')
+                        with open(annotations_path, "wb") as outfile: 
+                            outfile.write(orjson.dumps(all_annotations)) 
+                    else:
+                        print(f'Annotations from {taxid} not found. This is proteome number {N_parsed}.')
                         taxa_cache_.failed_taxa(taxid)
-                        with log_path.open('a') as output:
-                            output.write(f'A subprocess failed. The taxids it was working on ({taxids}) will be retried.\n')
-                            output.write('======================================================\n')
-                else:
-                    for out in this_out.values():
-                        taxa_failed = False
-                        (taxid, all_annotations, annotations_path, fasta_content, proteome_path, link_tables_dict, log_buffer) = out
-                        N_parsed = N_parsed + 1
-                        ## Write annotations
-                        if annotations_path.exists():
-                            print(f'Annotations from {taxid} already exist. This is proteome number {N_parsed}.')
-                        elif len(all_annotations) != 0:
-                            print(f'Saving annotations from {taxid} into {str(annotations_path)}. This is proteome number {N_parsed}.')
-                            with open(annotations_path, "wb") as outfile: 
-                                outfile.write(orjson.dumps(all_annotations)) 
-                        else:
-                            print(f'Annotations from {taxid} not found. This is proteome number {N_parsed}.')
-                            taxa_failed = True
-                        ## Write proteome
-                        if proteome_path.exists():
-                            print(f'Proteome from {taxid} already exists. This is proteome number {N_parsed}.')
-                        elif fasta_content != []:
-                            print(f'Saving proteome from {taxid} into {str(proteome_path)}. This is proteome number {N_parsed}.')
-                            with open(proteome_path, 'wb') as outfile:
-                                for read_content in fasta_content:
-                                    outfile.write(read_content)
-                        else:
-                            print(f'Proteome from {taxid} not found. This is proteome number {N_parsed}.')
-                            taxa_failed = True
-                        ## Write KO link tables
-                        if taxa_failed:
-                            taxa_cache_.failed_taxa(taxid)
-                        for x in link_tables_dict.values():
-                            (content, linkdf_path) = x
-                            with linkdf_path.open('wb') as file:
-                                file.write(content)       
-                        ## Write log
-                        with log_path.open('a') as output:
-                            for new_line in log_buffer.values():
-                                output.write(f'{new_line}\n')
-                            output.write('======================================================\n')
+                    ## Write proteome
+                    if proteome_path.exists():
+                        print(f'Proteome from {taxid} already exists. This is proteome number {N_parsed}.')
+                    elif fasta_content != []:
+                        print(f'Saving proteome from {taxid} into {str(proteome_path)}. This is proteome number {N_parsed}.')
+                        with open(proteome_path, 'wb') as outfile:
+                            for read_content in fasta_content:
+                                outfile.write(read_content)
+                    else:
+                        print(f'Proteome from {taxid} not found. This is proteome number {N_parsed}.')
+                        taxa_cache_.failed_taxa(taxid)
+                    ## Write KO link tables
+                    for x in link_tables_dict.values():
+                        (content, linkdf_path) = x
+                        with linkdf_path.open('wb') as file:
+                            file.write(content)       
+                    ## Write log
+                    with log_path.open('a') as output:
+                        for new_line in log_buffer.values():
+                            output.write(f'{new_line}\n')
+                        output.write('======================================================\n')
         if len(all_process) == 0 and taxa_cache_.finished:
                 still_working = False
                 failed_taxa = list(taxa_cache_.super_failed)
@@ -519,14 +510,14 @@ if __name__ == '__main__':
                             output.write(f'\n')
                             output.write('======================================================\n')
                             output.write(f'All taxa downloaded!\n')
-                            output.write(f'The following taxids failed to downloaded initially, but all were successfully downloaded in under {taxa_cache_.N_retries} retries.\n')
+                            output.write(f'The following taxids failed to downloaded initially, but were successfully downloaded in under {taxa_cache_.N_retries}\n')
                             output.write(f'{taxa_cache_.failed_taxa_}\n')
                             output.write('======================================================\n')
                 else:
-                    print(f'These taxa failed to download after {taxa_cache_.N_retries} retries! {failed_taxa}')
+                    print(f'These taxa failed to download after 10 retries! {failed_taxa}')
                     with log_path.open('a') as output:
                             output.write(f'\n')
                             output.write('======================================================\n')
-                            output.write(f'The following taxids failed to download after {taxa_cache_.N_retries+1} attempts! {failed_taxa}\n')
+                            output.write(f'The following taxids failed to download after {taxa_cache_.N_retries} retries! {failed_taxa}\n')
                             output.write('======================================================\n')
 
