@@ -6,16 +6,12 @@ import time
 import re
 
 from pathlib import Path, PureWindowsPath
+from openpyxl import load_workbook
 
 
 # @profile    
-def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, fout, detailed_fout, n_protein_cutoff, db_pattern, 
-                      benchmark, taxa_stats_path):
-    if benchmark:
-        pident = min(benchmark)
-    else:
-        pident = 100.0
-    taxa_stats = pd.read_csv(taxa_stats_path, sep = '\t')
+def run_diamond_tally(diamond_output, filterby, member_csv, mode, fout, detailed_fout, DB):
+    # taxa_stats = pd.read_csv(taxa_stats_path, sep = '\t')
 
     if mode=="member":
             taxa_col = 'member_taxa'
@@ -26,8 +22,6 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
         return
     
     if not detailed_fout.exists():
-
-        filterby={}
                 
         ############################################################
         # read diamond output file
@@ -39,7 +33,11 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
         # filter by quality and taxa
         ############################################################
         print("Filtering by quality and taxa...")
-        filtered_dmd = dmd_filter(dmd, filterby=filterby)
+        filtered_dmd = dmd_filter(dmd, filterby={})
+        if DB == 'Uniref100':
+            db_pattern = 'TaxID'
+        elif DB == 'reference_proteomes':
+            db_pattern = 'OX'
         filtered_dmd = collect_taxid(filtered_dmd, db_pattern)
         filtered_dmd['uniref_id'] = [i[0] for i in filtered_dmd.uniref_seq.str.split(" ", n = 1)]
 
@@ -54,11 +52,11 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
         ############################################################
         # retrieve UniRef100 representative taxa and its members
         ############################################################
-        print("Retrieving UniRef100 representative taxa and members...")
-        unique_unirefs = set(filtered_dmd.uniref_id.drop_duplicates())
+        # print("Retrieving taxa lineage information...")
         if db_pattern == 'TaxID':
-            taxa_member_tbl = get_taxa_members(ncbi_taxa_folder / 'uniref100_member_taxa_tbl.csv',
-                                            unique_unirefs)  
+            # unique_unirefs = set(filtered_dmd.uniref_id.drop_duplicates())
+            unique_unirefs = {x:1 for x in filtered_dmd.uniref_id.drop_duplicates().tolist()}
+            taxa_member_tbl = get_taxa_members(member_csv, unique_unirefs)  
             ############################################################
             # merge
             ############################################################
@@ -75,9 +73,12 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
             uids = merged.uid.tolist()
             commons = merged.common_taxa.tolist()
             pidents = merged.pident.tolist()
+            align_lens = merged.align_len.tolist()
+            scores = merged.score.tolist()
             for ii, members in enumerate(merged.members.str.split(":").tolist()):
                 for mm in members:
-                    unique_members.append({"scan":scanids[ii], "uid":uids[ii], "member_taxa":int(mm), "common_taxa":int(commons[ii]), "pident":pidents[ii]})
+                    unique_members.append({"scan":scanids[ii], "uid":uids[ii], "protein":uids[ii].replace('UniRef100_', ''),"member_taxa":int(mm), "common_taxa":int(commons[ii]), 
+                                           "pident":pidents[ii], "align_len":align_lens[ii], "score":scores[ii]})
             print("  #members:{}".format(len(unique_members)))
             members_df = pd.DataFrame(unique_members)
 
@@ -89,42 +90,45 @@ def run_diamond_tally(diamond_output, n_strain_select, ncbi_taxa_folder, mode, f
             members_df['member_taxa'] = filtered_dmd['taxid']
             members_df['common_taxa'] = members_df['member_taxa']
             members_df['pident'] = filtered_dmd['pident']
+            members_df['align_len'] = filtered_dmd['align_len']
+            members_df['score'] = filtered_dmd['score']
             members_df = pd.DataFrame(members_df)
  
         ############################################################
         # top-rank taxa
         ############################################################
-        print("Filtering top-rank taxa by hits...")
         
         detailed_output = members_df
-        detailed_output["protein"] = [re.sub("UniRef100_", "", detailed_output.uid[i]) for i in range(0, len(detailed_output))]
-        detailed_output = detailed_output[['scan', 'uid', 'protein', 'member_taxa', 'common_taxa', 'pident']]
-        detailed_output = detailed_output.merge(taxa_stats, left_on = taxa_col, right_on = 'taxid', how = 'left')
+        # detailed_output["protein"] = [detailed_output.uid[i].replace('UniRef100_', '') for i in range(0, len(detailed_output))]
+        detailed_output = detailed_output[['scan', 'uid', 'protein', 'member_taxa', 'common_taxa', 'pident', 'align_len', 'score']]
+        # detailed_output = detailed_output.merge(taxa_stats, left_on = taxa_col, right_on = 'taxid', how = 'left')
         detailed_output.to_csv(detailed_fout, index = False)
     else:
         print("Loading |scan|protein|taxa| table " + detailed_fout.name + "\n")
         detailed_output = pd.read_csv(detailed_fout)
-
-    all_sheets = []
-    if benchmark:
-        for pident in benchmark:
-            detailed_output_sheet = detailed_output[detailed_output['pident'] >= pident]
-            df = make_top_taxa_df(detailed_output_sheet, taxa_stats, taxa_col, n_strain_select, n_protein_cutoff)
-            all_sheets = all_sheets + [df]
+    
+    if fout.exists():
+        book = load_workbook(fout)
+        writer = pd.ExcelWriter(fout, engine='openpyxl')
+        writer.book = book
+        sheet_names = book.sheetnames
     else:
-        detailed_output_sheet = detailed_output[detailed_output['pident'] >= 100.0]
-        df = make_top_taxa_df(detailed_output_sheet, taxa_stats, taxa_col, n_strain_select, n_protein_cutoff)
+        writer = pd.ExcelWriter(fout, engine='xlsxwriter')
+        sheet_names = []
 
-    writer = pd.ExcelWriter(fout, engine='xlsxwriter')
-    if benchmark:
-        for pident, df in zip(benchmark, all_sheets):
-            df.to_excel(writer, sheet_name = f'pident at least {pident} percent')
-
-        writer.close()
+    # pidents.sort(reverse=True)
+    if 'score' in filterby.keys():
+        score = filterby['score']
+        sheet_name = f'alignment >= {score} percent'
+        detailed_output_sheet = detailed_output[detailed_output['score'] >= score]
     else:
-        df.to_excel(writer, sheet_name = f'pident at least {100} percent')
-        
-        writer.close()
+        pident = filterby['pident']
+        sheet_name = f'pident >= {pident} percent'
+        detailed_output_sheet = detailed_output[detailed_output['pident'] >= pident]
+    if sheet_name not in sheet_names:
+        df = make_top_taxa_df(detailed_output_sheet, taxa_col)
+        df.to_excel(writer, sheet_name = sheet_name)
+    writer.close()
 
 def find_smaller_taxa(df, pepcount_taxid, _n_strain_select, index):
     tax_ranks = ['species', 'genus', 'family', 'order', 'class', 'phylum', 'kingdom', 'superkingdom']
@@ -147,15 +151,18 @@ def find_smaller_taxa(df, pepcount_taxid, _n_strain_select, index):
     return(subcount)
 
 def read_dmd(diamond_output):
-    dmd_colnames = ['scans','uniref_seq','pident','evalue','mismatch']
+    dmd_colnames = ['scans','uniref_seq','pident','evalue','mismatch', 'gapopen', 
+                    'gaps', 'qstart', 'qend', 'qseq', 'sstart', 'send', 'sseq', 'qlen', 'full_qseq']
     dmd = pd.read_csv(diamond_output, sep='\t', header=None, names=dmd_colnames)
+    dmd['align_len'] = [len(seq) for seq in dmd['qseq']]
+    dmd['score'] = [align_len * pident/qlen for align_len, pident, qlen in zip(dmd['align_len'], dmd['pident'], dmd['qlen'])]
     return dmd
 
 def dmd_filter(dmd, filterby={}):
     if len(filterby) > 0:
         filterby_cond = None
         for col in filterby:
-            if col == 'pident':
+            if col in ['pident', 'align_len', 'score']:
                 tmp = dmd[col]>=filterby[col]
             elif col in ['evalue', 'mismatch']:
                 tmp = dmd[col]<=filterby[col]
@@ -210,7 +217,10 @@ def get_taxa_members(member_tbl_file, unique_unirefs):
     dfs = []
     num_iters = 0
     for chunk in pd.read_csv(member_tbl_file, chunksize=chunksize):
-        tdf = chunk[chunk.uid.isin(unique_unirefs)]
+        # if num_iters > 10:
+        #     break
+        # else:
+        tdf = chunk[chunk.uid.isin(unique_unirefs.keys())]
         dfs.append(tdf)
         num_iters += 1
 
@@ -218,7 +228,7 @@ def get_taxa_members(member_tbl_file, unique_unirefs):
     print("  #Chunk:{}, Size:{}, {:.2f}min".format(len(dfs), df.shape, (time.time()-stime)/60))
     return df
 
-def make_top_taxa_df(detailed_output, taxa_stats, taxa_col, n_strain_select, n_protein_cutoff):
+def make_top_taxa_df(detailed_output, taxa_col):
     unique_pepseq_taxa = detailed_output.drop_duplicates(subset=['scan',taxa_col])
     pepcount_taxid = unique_pepseq_taxa[taxa_col].value_counts()
 
@@ -235,14 +245,14 @@ def make_top_taxa_df(detailed_output, taxa_stats, taxa_col, n_strain_select, n_p
 
     pepcount_taxid = pepcount_taxid.to_frame('hits')
     pepcount_taxid['taxid'] = pepcount_taxid.index
-    pepcount_taxid = pepcount_taxid.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
+    # pepcount_taxid = pepcount_taxid.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
     
-    if n_strain_select > 0 & n_strain_select <= 5:
-        _n_strain_select = 5
-    elif n_strain_select > 5:
-        _n_strain_select = n_strain_select
-    else:
-        _n_strain_select = -1
+    # if n_strain_select > 0 & n_strain_select <= 5:
+    #     _n_strain_select = 5
+    # elif n_strain_select > 5:
+    #     _n_strain_select = n_strain_select
+    # else:
+    #     _n_strain_select = -1
     
     # top_taxa = besthits.nlargest(n_strain_select, keep='all').to_frame(name='hits')
     top_taxa = besthits.to_frame(name='hits')
@@ -253,7 +263,9 @@ def make_top_taxa_df(detailed_output, taxa_stats, taxa_col, n_strain_select, n_p
     ############################################################
     print("Saving top-rank taxa info...")
     # df = pd.concat([top_taxa, taxa_stats], join='inner', axis=1)
-    df = top_taxa.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
+    # df = top_taxa.merge(taxa_stats, left_on = 'taxid', right_on = 'taxid', how = 'left')
+    df = top_taxa
+    df['proportion'] = df['hits']/df['hits'].sum()
     df['running_coverage'] = df['hits'].cumsum()/df['hits'].sum()
     append = pd.DataFrame({'taxid' : [],
                         'tax_name' : [],
@@ -261,14 +273,15 @@ def make_top_taxa_df(detailed_output, taxa_stats, taxa_col, n_strain_select, n_p
                         'rank' : [],
                         'hits' : [],
                         'n_protein' : [],
+                        'proportion' : [],
                         'running_coverage' : [],
                         'notes' : []})
     df['notes'] = 'Primary taxa identified by Kaiko. \'hits\' denotes tally2 hits'
-    pepcount_taxid = pepcount_taxid[pepcount_taxid['n_protein'] < n_protein_cutoff]
-    for index in range(len(df)):
-        if df.iloc[index].n_protein > n_protein_cutoff:
-            subcount = find_smaller_taxa(df, pepcount_taxid, _n_strain_select, index)
-            append = pd.concat([append, subcount])
+    # pepcount_taxid = pepcount_taxid[pepcount_taxid['n_protein'] < n_protein_cutoff]
+    # for index in range(len(df)):
+    #     if df.iloc[index].n_protein > n_protein_cutoff:
+    #         subcount = find_smaller_taxa(df, pepcount_taxid, _n_strain_select, index)
+    #         append = pd.concat([append, subcount])
 
     df = pd.concat([df, append])
     df = df.sort_values(by = ['running_coverage', 'notes'])

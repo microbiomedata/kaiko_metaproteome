@@ -2,66 +2,60 @@
 
 ## Introduction
 
-Put simply, this tool takes raw proteomic input and outputs a FASTA file of those organisms most likely to be present in the proteomic input.
+Put simply, this tool takes a dataset (as .raw proteomic input) and outputs a FASTA file of those organisms most likely to be present in the input. This FASTA is meant to be used as a protein database to search the .raw input with tools such as MSGF+.
 
-The pipeline uses neural networks to identify peptide sequences from raw proteomic input, which are then aligned against all protein sequences using a diamond search. This offers us a view of those organisms most likely to be present in the proteomic samples, with which we make a FASTA file from the most likely organisms identified.
+The pipeline uses a neural network to denovo sequence peptides from the raw proteomic input. These peptides are aligned against all protein sequences from the Uniprot Reference proteomes using DIAMOND. From these alignments, we produce a ranking of species most likely to have proteomes matching the spectra, and aggregate a FASTA consisting the top matching proteomes. Additionally, we output annotation containing pfam, EC, ko and cog annotations for the proteins in GFF format.
+
+This pipeline is dockerized, with image available here: [here](https://hub.docker.com/r/camiloposso15/kaiko_2.0-py3.10)
 
 
 ## Setup
 
-Uses python 3.10 and tensorflow 2.11.0. The full list of requirements can be found in ```Kaiko_volume/setup_libraries.txt```
+Runs using python 3.10 and pytorch 2.5. The full list of requirements can be found in ```Kaiko_volume/setup_libraries.txt```.
 
-Before first use, a few files are needed.
+To use, the pipeline requires database files to be downloaded. The bulk of this setup can be done nearly automatically, but cannot be completed from docker.
 
-### Downloading Files
+## Database setup
 
-1) Run the file `Kaiko_denovo/model/get_data.sh` to download the trained Kaiko denovo model.
+NOTE: The database files can be obtained from [here](fakewebsitekejfbkwjbfkf). Download all the files into a folder `reference_protomes_db`.
 
-Download the following files to the ```Kaiko_volume/Kaiko_stationary_files``` folder.
+Kaiko 2.0 relies on the reference proteomes from UniProt, along with their annotations. Set up is easy, in four steps!
 
-1) [UniRef100 FASTA](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz) Large file, 80 Gb+.
+1) Download the source code for this pipeline from the release section. Then extract the contents to a folder of your choice. For this tutorial, we will call it `./Kaiko_metaproteome`.
 
-2) [UniRef100 XML](https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.xml.gz) Large file, 100 Gb+.
+2) From the UniProt website, we download a table with IDs of the reference proteomes. This can be found [here](https://rest.uniprot.org/proteomes/stream?download=true&fields=upid%2Corganism%2Corganism_id%2Cprotein_count%2Cbusco%2Ccpd%2Ccomponents%2Cmnemonic%2Clineage%2Cgenome_assembly%2Cgenome_representation&format=tsv&query=%28*%29+AND+%28proteome_type%3A1%29). We will refer to this file as `proteomes_table.tsv`. Copy this file into the folder `./Kaiko_metaproteome/Kaiko_main/database_setup/`.
 
-3) [NCBI Taxonomy dump](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.zip) Less than 1Gb.
+3) (Note: Once complete, the size of the database files is about 270 Gb). Create a folder in which to store the database files, in this tutorial we will refer to this folder's path as `database_folder`. In a command prompt, navigate to the folder `./Kaiko_metaproteome/Kaiko_main/database_setup/` and run the following command: `python -m kaiko_fetch_annotations --proteomes_table proteomes_table.tsv --out_dir database_folder --N_process 4 --cache_size 15`. This will start 4 separate, parallel processes to download both the FASTA for each proteome, and a JSON containing all the annotations of the proteins (pfam, EC, ko, etc). 
 
-4) [Diamond search](https://github.com/bbuchfink/diamond/releases), choosing the appropriate system. If using Docker, get the Linux version.
+The download script will log the number of proteins in each proteome, as well as any issues with downloads. This log can be found in the `database_folder`. If the processor has many more cores, the value of `N_processes` can be raised to complete the setup faster. Note: If any proteomes fail to download, or the main process is stopped mid way, running the same command again will fetch only proteomes and annotations which have not been downloaded.
 
-### Processing
+To check if there's discrepencies between the proteomes and annotations after the download, search (ctrl+F) for 'Failed integrity check' in the log. To check for any Proteomes which could not be found, search (ctrl+F) for 'Proteome not found'. 
 
-1) Extract the diamond file from step 4 into its own folder within ```Kaiko_volume/Kaiko_stationary_files```, eg ```Kaiko_volume/Kaiko_stationary_files/diamond```. 
-
-2) Within a command prompt, navigate to the diamond folder created in the previous step and run ```diamond makedb --in ../uniref100.fasta.gz --db ../uniref100```. The process can take a while. Note: If using Linux or Mac, replace ```diamond``` with ```./diamond```.
-
-3) Extract the contents of NCBI Taxonomy dump to its own folder within ```Kaiko_volume/Kaiko_stationary_files```, eg ```Kaiko_volume/Kaiko_stationary_files/ncbi_taxa```.
-
-4) Within a command prompt, navigate to the ```Kaiko_volume/Kaiko_stationary_files``` folder and run ```python ExtractUniRefMembers.py```. This will make the file ```uniref100_member_taxa_tbl.csv``` within ```Kaiko_volume/Kaiko_stationary_files```. Copy this file into the taxa folder from step 3, eg ```Kaiko_volume/Kaiko_stationary_files/ncbi_taxa```. This step can also take some time.
-
-
-### Check
-
-In the end, ```Kaiko_volume/Kaiko_stationary_files``` should have two new files, ```uniref100.dmnd``` and ```uniref100.fasta```. It should also contain two folders, ```Kaiko_volume/Kaiko_stationary_files/diamond``` and ```Kaiko_volume/Kaiko_stationary_files/ncbi_taxa```, if using default names. 
-The diamond folder should contain the diamond file, while the taxa_folder should contain the contents of the NCBI Taxanomy dump (.dmp files), and the file ```uniref100_member_taxa_tbl.csv```. If the names of these two new folders differ from the default used in the readme, the config.yaml file must be edited to point to these new folders, see the repo config.yaml for an example.
+4) Finally, once all the proteomes have downloaded successfully, download the DIAMOND alignment tool from the official github [here](https://github.com/bbuchfink/diamond/releases/tag/v2.1.11). Extract the file into the `database_folder` from step 3. Then, from a powershell prompt, navigate to the `database_folder` and run `cat *.fasta | .\diamond makedb -d reference_proteomes_db`. This will make a DIAMOND compatible database using all the sequences from the Reference Proteomes, which will be used to map denovo peptides to proteins.
 
 
 ## Usage
 
-Currently, only .mgf files are supported. To use, simply follow these steps.
+Currently, only .mgf files are supported. To run Kaiko, it is required that the database files be downloaded first.
 
-1) Place the input into a separate folder WITHIN the ```Kaiko_volume/Kaiko_input_files/``` directory. This folder should have a descriptive name. 
+1) Place the input mgf files into a folder within the ```Kaiko_metaproteome/Kaiko_volume/Kaiko_input_files/``` directory. The folder name should be unique to the dataset.
 
-2) Edit the ```config.yaml``` file within the ```Kaiko_volume``` directory to include the location of the folder with the input. An example can be found in the current file ```config.yaml```.
+2) Edit the ```config.yaml``` file within the ```Kaiko_volume``` directory to include the location of the folder with the input. An example can be found in the current file ```config.yaml```. Ensure the 
 
-3) Run the command ``` python Kaiko_pipeline_main.py ``` within the main directory of this repo. The ```kaiko_defaults.yaml``` file will fill in any necessary parameters not present in ```config.yaml```
+3) From a command prompt, navigate to the `Kaiko_metaproteome` folder, and run the command ```python -m Kaiko_pipeline_main.py --config your_config.yaml```. 
 
+The ```Kaiko_volume/Kaiko_output/``` will contain a subfolder with the same name as the input in step 1. Inside, we can find the The FASTA and GFF output for the dataset, as well intermediate files created by the pipeline.
 
-The ```Kaiko_volume/Kaiko_intermediate/``` folder will be populated with a few intermediate files. These are named using the ```mgf_input``` folder name. The final FASTA output can be found within ```Kaiko_volume/Kaiko_output/``` folder, again named using the folder name of the input.
-
-4) If you would like to profile the pipeline using cProfile, add the ```profile = True``` flag to the config file. To use memory-profiler, within the main repo directory, run ```mprof run --include-children Kaiko_pipeline_main.py```.
 
 ## Usage with Docker
 
-To use the pipeline within Docker, follow steps 1-2 in Usage, then jump here:
+To use the pipeline within Docker, follow steps 1-4 in Database Setup. 
+
+1) Create a folder named ```Kaiko_volume``` somewhere in your PC. Place the input mgf files into a subfolder inside. The subfolder name should be unique to the dataset. In the following steps, we will call the path to this folder ```absolute_path_Kaiko_volume```. 
+
+2) Download a copy of the ```config.yaml``` file and place it in the folder ```Kaiko_volume``` from step 1. Edit this yaml file to include the location of the input mgf folder from step 1.
+
+3) From a command prompt, run the following: ```docker run -v absolute_path_Kaiko_volume:/Kaiko_metaproteome/Kaiko_volume camiloposso15/kaiko_2.0-py3.10 python -m Kaiko_main.Kaiko_main --config Kaiko_volume/config_kansas_soil.yaml```
 
 3) (Docker) Run the command ```docker build -f Dockerfile_tensorflow2.12.0-py310 -t tensorflow2.12.0-py310 .``` to make the tensorflow image.
 

@@ -10,32 +10,18 @@ denovo:
   profile: false
   topk: false
 diamond tally:
-  benchmark: []
+  DB: Reference Proteomes
   cached: false
-  db_pattern: OX
-  diamond_database: E:/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db
+  diamond_database: Kaiko_volume/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db
   diamond_folder: Kaiko_volume/Kaiko_stationary_files/diamond
+  member_csv: Kaiko_volume/Kaiko_stationary_files/Uniref100/uniref100_member_taxa_tbl.csv
   mode: member
-  n_protein_cutoff: 3000000
-  ncbi_taxa_folder: E:/Kaiko_stationary_files/ncbi_taxa
-  taxa_stats: Kaiko_volume/Kaiko_stationary_files/ncbi_taxa/uniref100_member_stats_with_lineage.txt
+  pident: 100
+  score: null
 general:
   output_dir: Kaiko_volume
 taxa to fasta:
-  annotation_cats:
-  - GO
-  - KEGG
-  - Reactome
-  - verstion_date
-  - version
-  - gene_name
-  - description
-  coverage_target: 0.48
-  gz_index: Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx
   kingdom_list: ''
-  proteome_index: Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt
-  proteome_index_s: Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt
   ref_fasta: C:/Kaiko_stationary_files/Reference_Proteomes
-  ref_proteome_log: Kaiko_volume/Kaiko_stationary_files/Reference Proteomes/database_log.xlsx
+  target_coverage: 50
   taxa_key: TaxID
-  top_strains: 1

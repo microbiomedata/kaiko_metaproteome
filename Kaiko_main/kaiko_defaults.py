@@ -25,31 +25,34 @@ config['denovo'] = {'method' : "PNNL_Casanovo",
 
 
 config['diamond tally'] = {'diamond_folder' : 'Kaiko_volume/Kaiko_stationary_files/diamond',
-                           'ncbi_taxa_folder' : 'E:/Kaiko_stationary_files/ncbi_taxa',
+                           'member_csv' : 'Kaiko_volume/Kaiko_stationary_files/Uniref100/uniref100_member_taxa_tbl.csv',
                            'mode' : 'member',
                           #  'fout' : 'Kaiko_volume/Kaiko_intermediate/kaiko_prediction_top_taxa.csv',
                           #  'diamond_output' : "Kaiko_volume/Kaiko_intermediate/denovo_output/diamond_search_output.dmd",
-                           'diamond_database' : 'E:/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db',
-                           'n_protein_cutoff' : 3000000,  ## Not important when using ref proteomes (default)
+                           'diamond_database' : 'Kaiko_volume/Kaiko_stationary_files/Reference_Proteomes/reference_proteomes_db',
+                        #    'n_protein_cutoff' : 30000000,  ## Not important when using ref proteomes (default)
                            'cached' : False,
-                           'db_pattern' : 'OX',
-                           'benchmark' : [],
-                           'taxa_stats' : 'Kaiko_volume/Kaiko_stationary_files/ncbi_taxa/uniref100_member_stats_with_lineage.txt'}
+                           'DB' : 'Reference Proteomes',
+                           'pident': 100,
+                           'score' : None,
+                        #    'benchmark' : [100.0, 95.0, 90.0, 85.0, 80.0, 75.0],
+                           # 'taxa_stats' : 'Kaiko_volume/Kaiko_stationary_files/ncbi_taxa/uniref100_member_stats_with_lineage.txt'
+                           }
 
 
 config['taxa to fasta'] = {'ref_fasta' : 'C:/Kaiko_stationary_files/Reference_Proteomes',
                           #  'diamond_tally' : "Kaiko_volume/Kaiko_intermediate/kaiko_prediction_top_taxa.csv",
                           #  'fout' : "Kaiko_volume/Kaiko_output/kaiko_output.fasta",
-                           'gz_index' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx',
-                           'proteome_index' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt',
-                           'proteome_index_s' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt',
-                           'ref_proteome_log' : 'Kaiko_volume/Kaiko_stationary_files/Reference Proteomes/database_log.xlsx',
-                           'coverage_target' : 0.48,
-                           'top_strains' : 1,
+                        #    'gz_index' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_fasta_gzindex.gzidx',
+                        #    'proteome_index' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_index.txt',
+                        #    'proteome_index_s' : 'Kaiko_volume/Kaiko_stationary_files/uniref100_index_s.txt',
+                           # 'ref_proteome_log' : 'Kaiko_volume/Kaiko_stationary_files/Reference Proteomes/database_log.xlsx',
+                        #    'top_strains' : 1,
+                           'target_coverage': 50,
                            'taxa_key' : "TaxID",
                            'kingdom_list' : "",
                           # Always output the primary accession and the ID of the entry. These others are optional, but by default included.
-                           'annotation_cats' : ['GO', 'KEGG', 'Reactome', 'verstion_date', 'version', 'gene_name', 'description']
+                           # 'annotation_cats' : ['GO', 'KEGG', 'Reactome', 'verstion_date', 'version', 'gene_name', 'description']
                            }
 
 # with open('kaiko_defaults.ini', 'w') as configfile:
