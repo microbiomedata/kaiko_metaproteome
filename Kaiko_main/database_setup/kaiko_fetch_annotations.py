@@ -48,7 +48,7 @@ def download_proteome_table(url = "https://rest.uniprot.org/proteomes/stream?dow
         with save_path.open('wb') as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
-            print(f"Downloaded the latest reference proteome table to {save_path.stem}.")
+            print(f"Downloaded the latest reference proteome table to {save_path.name}.")
     except:
         print(f"Failed to download the latest reference proteome table. Please download the latest version from the following url\n{url}")
     return save_path

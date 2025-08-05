@@ -19,19 +19,17 @@ To use, the pipeline requires database files to be downloaded. The bulk of this 
 
 NOTE: The database files can be obtained from [here](fakewebsitekejfbkwjbfkf). Download all the files into a folder `reference_protomes_db`.
 
-Kaiko 2.0 relies on the reference proteomes from UniProt, along with their annotations. Set up is easy, in four steps!
+Kaiko 2.0 relies on the reference proteomes from UniProt, along with their annotations. Set up is easy, in three steps! (Note: Once complete, the size of the database files is about 270 Gb). 
 
 1) Download the source code for this pipeline from the release section. Then extract the contents to a folder of your choice. For this tutorial, we will call it `./Kaiko_metaproteome`.
 
-2) From the UniProt website, we download a table with IDs of the reference proteomes. This can be found [here](https://rest.uniprot.org/proteomes/stream?download=true&fields=upid%2Corganism%2Corganism_id%2Cprotein_count%2Cbusco%2Ccpd%2Ccomponents%2Cmnemonic%2Clineage%2Cgenome_assembly%2Cgenome_representation&format=tsv&query=%28*%29+AND+%28proteome_type%3A1%29). We will refer to this file as `proteomes_table.tsv`. Copy this file into the folder `./Kaiko_metaproteome/Kaiko_main/database_setup/`.
-
-3) (Note: Once complete, the size of the database files is about 270 Gb). Create a folder in which to store the database files, in this tutorial we will refer to this folder's path as `database_folder`. In a command prompt, navigate to the folder `./Kaiko_metaproteome/Kaiko_main/database_setup/` and run the following command: `python -m kaiko_fetch_annotations --proteomes_table proteomes_table.tsv --out_dir database_folder --N_process 4 --cache_size 15`. This will start 4 separate, parallel processes to download both the FASTA for each proteome, and a JSON containing all the annotations of the proteins (pfam, EC, ko, etc). 
+2) Create a folder in which to store the database files, in this tutorial we will refer to this folder's path as `database_folder`. In a command prompt, navigate to the folder `./Kaiko_metaproteome/Kaiko_main/database_setup/` and run the following command: `python -m kaiko_fetch_annotations --proteomes_table proteomes_table.tsv --out_dir database_folder --N_process 4 --cache_size 15`. This will start 4 separate, parallel processes to download both the FASTA for each proteome, and a JSON containing all the annotations of the proteins (pfam, EC, ko, etc). 
 
 The download script will log the number of proteins in each proteome, as well as any issues with downloads. This log can be found in the `database_folder`. If the processor has many more cores, the value of `N_processes` can be raised to complete the setup faster. Note: If any proteomes fail to download, or the main process is stopped mid way, running the same command again will fetch only proteomes and annotations which have not been downloaded.
 
 To check if there's discrepencies between the proteomes and annotations after the download, search (ctrl+F) for 'Failed integrity check' in the log. To check for any Proteomes which could not be found, search (ctrl+F) for 'Proteome not found'. 
 
-4) Finally, once all the proteomes have downloaded successfully, download the DIAMOND alignment tool from the official github [here](https://github.com/bbuchfink/diamond/releases/tag/v2.1.11). Extract the file into the `database_folder` from step 3. Then, from a powershell prompt, navigate to the `database_folder` and run `cat *.fasta | .\diamond makedb -d reference_proteomes_db`. This will make a DIAMOND compatible database using all the sequences from the Reference Proteomes, which will be used to map denovo peptides to proteins.
+3) Finally, once all the proteomes have downloaded successfully, download the DIAMOND alignment tool from the official github [here](https://github.com/bbuchfink/diamond/releases/tag/v2.1.11). Extract the file into the `database_folder` from step 3. Then, from a powershell prompt, navigate to the `database_folder` and run `cat *.fasta | .\diamond makedb -d reference_proteomes_db`. This will make a DIAMOND compatible database using all the sequences from the Reference Proteomes, which will be used to map denovo peptides to proteins.
 
 
 ## Usage
