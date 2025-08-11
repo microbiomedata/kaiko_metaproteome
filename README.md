@@ -4,7 +4,7 @@
 
 Put simply, this tool takes a dataset (as .raw proteomic input) and outputs a FASTA file of those organisms most likely to be present in the input. This FASTA is meant to be used as a protein database to search the .raw input with tools such as MSGF+.
 
-The pipeline uses a neural network to denovo sequence peptides from the raw proteomic input. These peptides are aligned against all protein sequences from the Uniprot Reference proteomes using DIAMOND. From these alignments, we produce a ranking of species most likely to have proteomes matching the spectra, and aggregate a FASTA consisting the top matching proteomes. Additionally, we output annotation containing pfam, EC, ko and cog annotations for the proteins in GFF format.
+In short, the pipeline uses a neural network to denovo sequence peptides from the raw proteomic input. These peptides are aligned against all protein sequences from the Uniprot Reference proteomes using DIAMOND. From these alignments, we produce a ranking of species most likely to have proteomes matching the spectra, and aggregate a FASTA consisting the top matching proteomes. Additionally, we output annotation containing pfam, EC, ko and cog annotations for the proteins in GFF format.
 
 This pipeline is dockerized, with image available here: [here](https://hub.docker.com/r/camiloposso15/kaiko_2.0-py3.10)
 
